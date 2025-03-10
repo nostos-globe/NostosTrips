@@ -5,26 +5,15 @@ import (
 	"main/internal/models"
 )
 
-type FollowService struct {
-	FollowRepo *db.FollowRepository
+type TripService struct {
+	TripRepo *db.TripsRepository
 }
 
-func (s *FollowService) GetFollowByIDs(followerID uint, followedID uint) (any, error) {
-	return s.FollowRepo.GetFollowByIDs(followerID, followedID)
-}
+func (s *TripService) CreateTrip(trip models.Trip) (any, error) {
+	result, err := s.TripRepo.CreateTrip(trip)
+	if err != nil {
+		return nil, err
+	}
 
-func (s *FollowService) FollowUser(follow *models.Follow) error {
-	return s.FollowRepo.FollowUser(follow)
-}
-
-func (s *FollowService) UnFollowUser(follow *models.Follow) error {
-	return s.FollowRepo.UnFollowUser(follow)
-}
-
-func (s *FollowService) ListFollowers(profileID uint) (any, error) {
-	return s.FollowRepo.ListFollowers(profileID)
-}
-
-func (s *FollowService) ListFollowing(profileID uint) (any, error) {
-	return s.FollowRepo.ListFollowing(profileID)
+	return result, nil
 }

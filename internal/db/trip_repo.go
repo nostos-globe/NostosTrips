@@ -6,41 +6,25 @@ import (
 	"gorm.io/gorm"
 )
 
-type FollowRepository struct {
+type TripsRepository struct {
 	DB *gorm.DB
 }
 
-func (repo *FollowRepository) GetFollowByIDs(followerID uint, followedID uint) (any, error) {
-	var follow models.Follow
-	err := repo.DB.Table("auth.followers").Where("follower_id = ? AND followed_id = ?", followerID, followedID).First(&follow).Error
-	if err != nil {
-		return nil, err
+func (repo *TripsRepository) CreateTrip(trip models.Trip) (any, error) {
+	result := repo.DB.Table("trips.trips").Create(&trip)
+	if result.Error != nil {
+		return nil, result.Error
 	}
-	return &follow, nil
+
+	return trip, nil
 }
 
-func (repo *FollowRepository) FollowUser(follow *models.Follow) error {
-	return repo.DB.Table("auth.followers").Create(follow).Error
-}
-
-func (repo *FollowRepository) UnFollowUser(follow *models.Follow) error {
-	return repo.DB.Table("auth.followers").Delete(follow).Error
-}
-
-func (repo *FollowRepository) ListFollowers(profileID uint) (any, error) {
-	var followers int64
-	err := repo.DB.Table("auth.followers").Where("followed_id = ?", profileID).Count(&followers).Error
-	if err != nil {
-		return nil, err
+func (repo *TripsRepository) GetTripByID(tripID int) (models.Trip, error) {
+	var trip models.Trip
+	result := repo.DB.Table("trips.trips").First(&trip, tripID)
+	if result.Error != nil {
+		return models.Trip{}, result.Error
 	}
-	return followers, nil
-}
 
-func (repo *FollowRepository) ListFollowing(profileID uint) (any, error) {
-	var following int64
-	err := repo.DB.Table("auth.followers").Where("follower_id = ?", profileID).Count(&following).Error
-	if err != nil {
-		return nil, err
-	}
-	return following, nil
+	return trip, nil
 }

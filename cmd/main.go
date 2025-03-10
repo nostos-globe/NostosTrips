@@ -41,46 +41,29 @@ func main() {
 	}
 
 	// Initialize repositories
-	profileRepo := &dbRepo.ProfileRepository{DB: database}
-	followRepo := &dbRepo.FollowRepository{DB: database}
+	tripRepo := &dbRepo.TripsRepository{DB: database}
 	// Initialize authClient
 	authClient := &service.AuthClient{BaseURL: cfg.AuthServiceUrl}
 	// Initialize services
-	profileService := &service.ProfileService{ProfileRepo: profileRepo}
-	followService := &service.FollowService{FollowRepo: followRepo}
+	tripService := &service.TripService{TripRepo: tripRepo}
 
 	// Initialize controllers
-	profileHandler := &controller.ProfileController{ProfileService: profileService, AuthClient: authClient}
-	followHandler := &controller.FollowController{FollowService: followService, ProfileService: profileService, AuthClient: authClient}
+	tripHandler := &controller.TripController{TripService: tripService, AuthClient: authClient}
 
 	// Initialize Gin
 	r := gin.Default()
 
 	// Profile routes
-	api := r.Group("/api")
+	api := r.Group("/api/trips")
 	{
 		// Protected profile routes
-		api.POST("/profiles", profileHandler.CreateProfile)
-		api.POST("/profiles/update", profileHandler.UpdateProfile)
-		api.POST("/profiles/updateProfileByID", profileHandler.UpdateProfileByID)
-		api.POST("/profiles/delete", profileHandler.DeleteProfile)
-
-		// Public profile routes
-		api.GET("/profiles/user/:userID", profileHandler.GetProfile)
-		api.GET("/profiles/username/:username", profileHandler.GetProfileByUsername)
-		api.POST("/profiles/search", profileHandler.SearchProfiles)
-
-		// Followers
-		api.POST("/follow/:followedID", followHandler.FollowUser)
-		api.POST("/unfollow/:followedID", followHandler.UnFollowUser)
-		api.GET("/:profileID/followers", followHandler.ListFollowers)
-		api.GET("/:profileID/following", followHandler.ListFollowing)
+		api.POST("/", tripHandler.CreateTrip)
 
 	}
 
 	// Start server
-	log.Println("Server running on http://localhost:8082")
-	if err := r.Run(":8082"); err != nil {
+	log.Println("Server running on http://localhost:8083")
+	if err := r.Run(":8083"); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
 }
