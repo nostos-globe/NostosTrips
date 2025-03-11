@@ -3,6 +3,7 @@ package service
 import (
 	"main/internal/db"
 	"main/internal/models"
+	"strconv"
 )
 
 type TripService struct {
@@ -16,4 +17,19 @@ func (s *TripService) CreateTrip(trip models.Trip) (any, error) {
 	}
 
 	return result, nil
+}
+
+func (s *TripService) GetTripByID(tripID string) (any, error) {
+	// Convert string ID to integer
+	id, err := strconv.Atoi(tripID)
+	if err != nil {
+		return nil, err
+	}
+
+	trip, err := s.TripRepo.GetTripByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return trip, nil
 }

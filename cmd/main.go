@@ -58,6 +58,7 @@ func main() {
 	{
 		// Protected profile routes
 		api.POST("/", tripHandler.CreateTrip)
+		api.GET("/:id", tripHandler.GetTripByID)
 
 	}
 
