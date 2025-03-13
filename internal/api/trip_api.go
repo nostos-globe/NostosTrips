@@ -40,14 +40,8 @@ func (c *TripController) CreateTrip(ctx *gin.Context) {
 		return
 	}
 
-	trip := models.Trip{
-		Name:        req.Name,
-		Description: req.Description,
-		Visibility:  req.Visibility,
-		StartDate:   req.StartDate,
-		EndDate:     req.EndDate,
-		UserID:      TokenResponse,
-	}
+	tripMapper := &models.TripMapper{}
+    trip := tripMapper.ToTrip(req, TokenResponse)
 
 	createdTrip, err := c.TripService.CreateTrip(trip)
 	if err != nil {
@@ -68,4 +62,37 @@ func (c *TripController) GetTripByID(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, trip)
+}
+
+func (c *TripController) GetAllTrips(ctx *gin.Context) {
+	trips, err := c.TripService.GetAllTrips()
+	if err!= nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve trips"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, trips)
+}
+
+func (c *TripController) GetMyTrips(ctx *gin.Context) {
+	// Get user ID from authenticated context
+	tokenCookie, err := ctx.Cookie("auth_token")
+	if err!= nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
+		return
+	}
+
+	TokenResponse, err := c.AuthClient.GetUserID(tokenCookie)
+	if err!= nil || TokenResponse == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to find this user"})
+		return
+	}
+
+	trips, err := c.TripService.GetMyTrips(TokenResponse)
+	if err!= nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve trips"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, trips)
 }

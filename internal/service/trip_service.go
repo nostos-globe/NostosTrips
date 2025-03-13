@@ -33,3 +33,21 @@ func (s *TripService) GetTripByID(tripID string) (any, error) {
 
 	return trip, nil
 }
+
+func (s *TripService) GetAllTrips() ([]models.Trip, error) {
+	trips, err := s.TripRepo.GetAllTrips()
+	if err != nil {
+		return nil, err
+	}
+
+	return trips, nil
+}
+
+func (s *TripService) GetMyTrips(userID uint) ([]models.Trip, error) {
+	trips, err := s.TripRepo.GetMyTrips(userID)
+	if err != nil {
+		return nil, err
+
+	}
+	return trips, nil
+}

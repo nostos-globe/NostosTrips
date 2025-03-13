@@ -56,8 +56,10 @@ func main() {
 	// Profile routes
 	api := r.Group("/api/trips")
 	{
-		// Protected profile routes
 		api.POST("/", tripHandler.CreateTrip)
+
+		api.GET("/", tripHandler.GetAllTrips)
+		api.GET("/myTrips", tripHandler.GetMyTrips)
 		api.GET("/:id", tripHandler.GetTripByID)
 
 	}
