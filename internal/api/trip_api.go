@@ -9,8 +9,9 @@ import (
 )
 
 type TripController struct {
-	TripService *service.TripService
-	AuthClient  *service.AuthClient
+	TripService  *service.TripService
+	MediaService *service.MediaService
+	AuthClient   *service.AuthClient
 }
 
 func (c *TripController) CreateTrip(ctx *gin.Context) {
@@ -41,7 +42,7 @@ func (c *TripController) CreateTrip(ctx *gin.Context) {
 	}
 
 	tripMapper := &models.TripMapper{}
-    trip := tripMapper.ToTrip(req, TokenResponse)
+	trip := tripMapper.ToTrip(req, TokenResponse)
 
 	createdTrip, err := c.TripService.CreateTrip(trip)
 	if err != nil {
@@ -51,6 +52,82 @@ func (c *TripController) CreateTrip(ctx *gin.Context) {
 	trip = createdTrip.(models.Trip)
 
 	ctx.JSON(http.StatusCreated, trip)
+}
+
+func (c *TripController) UpdateTrip(ctx *gin.Context) {
+	var req struct {
+		ID          int    `json:"id"`
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		Visibility  string `json:"visibility"`
+		StartDate   string `json:"start_date"`
+		EndDate     string `json:"end_date"`
+	}
+	// Get user ID from authenticated context
+	tokenCookie, err := ctx.Cookie("auth_token")
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
+		return
+	}
+
+	TokenResponse, err := c.AuthClient.GetUserID(tokenCookie)
+	if err != nil || TokenResponse == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to find this user"})
+		return
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	tripMapper := &models.TripMapper{}
+	trip := tripMapper.ToTripUpdate(req, TokenResponse)
+	result, err := c.TripService.UpdateTrip(trip)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update trip"})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"message": "trip updated successfully", "trip": result})
+}
+
+func (c *TripController) DeleteTrip(ctx *gin.Context) {
+	// Get user ID from authenticated context
+	tokenCookie, err := ctx.Cookie("auth_token")
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
+		return
+	}
+
+	TokenResponse, err := c.AuthClient.GetUserID(tokenCookie)
+	if err != nil || TokenResponse == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to find this user"})
+		return
+	}
+
+	tripID := ctx.Param("id")
+
+	deleteMedia := ctx.DefaultQuery("delete_media", "false")
+	shouldDeleteMedia := deleteMedia == "true"
+
+	if shouldDeleteMedia {
+		err := c.MediaService.DeleteMediaByTripID(tripID)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete media"})
+			return
+		}
+	}
+
+	err = c.TripService.DeleteTrip(tripID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete trip"})
+		return
+	}
+	if shouldDeleteMedia {
+		ctx.JSON(http.StatusOK, gin.H{"message": "trip and media deleted successfully"})
+	} else {
+		ctx.JSON(http.StatusOK, gin.H{"message": "trip deleted successfully"})
+	}
 }
 
 func (c *TripController) GetTripByID(ctx *gin.Context) {
@@ -66,7 +143,7 @@ func (c *TripController) GetTripByID(ctx *gin.Context) {
 
 func (c *TripController) GetAllTrips(ctx *gin.Context) {
 	trips, err := c.TripService.GetAllTrips()
-	if err!= nil {
+	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve trips"})
 		return
 	}
@@ -77,19 +154,19 @@ func (c *TripController) GetAllTrips(ctx *gin.Context) {
 func (c *TripController) GetMyTrips(ctx *gin.Context) {
 	// Get user ID from authenticated context
 	tokenCookie, err := ctx.Cookie("auth_token")
-	if err!= nil {
+	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
 		return
 	}
 
 	TokenResponse, err := c.AuthClient.GetUserID(tokenCookie)
-	if err!= nil || TokenResponse == 0 {
+	if err != nil || TokenResponse == 0 {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to find this user"})
 		return
 	}
 
 	trips, err := c.TripService.GetMyTrips(TokenResponse)
-	if err!= nil {
+	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve trips"})
 		return
 	}

@@ -42,13 +42,15 @@ func main() {
 
 	// Initialize repositories
 	tripRepo := &dbRepo.TripsRepository{DB: database}
+	mediaRepo := &dbRepo.MediaRepository{DB: database}
 	// Initialize authClient
 	authClient := &service.AuthClient{BaseURL: cfg.AuthServiceUrl}
 	// Initialize services
 	tripService := &service.TripService{TripRepo: tripRepo}
+	mediaService := &service.MediaService{MediaRepo: mediaRepo}
 
 	// Initialize controllers
-	tripHandler := &controller.TripController{TripService: tripService, AuthClient: authClient}
+	tripHandler := &controller.TripController{TripService: tripService, MediaService: mediaService, AuthClient: authClient}
 
 	// Initialize Gin
 	r := gin.Default()
@@ -62,6 +64,8 @@ func main() {
 		api.GET("/myTrips", tripHandler.GetMyTrips)
 		api.GET("/:id", tripHandler.GetTripByID)
 
+		api.PUT("/update", tripHandler.UpdateTrip)
+		api.DELETE("/delete/:id", tripHandler.DeleteTrip)
 	}
 
 	// Start server

@@ -19,6 +19,30 @@ func (s *TripService) CreateTrip(trip models.Trip) (any, error) {
 	return result, nil
 }
 
+func (s *TripService) UpdateTrip(trip models.Trip) (any, error) {
+	// Convert string ID to integer
+	result, err := s.TripRepo.UpdateTrip(trip)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (s *TripService) DeleteTrip(tripID string) error {
+	// Convert string ID to integer
+	id, err := strconv.Atoi(tripID)
+	if err != nil {
+		return err
+	}
+	err = s.TripRepo.DeleteTrip(id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *TripService) GetTripByID(tripID string) (any, error) {
 	// Convert string ID to integer
 	id, err := strconv.Atoi(tripID)

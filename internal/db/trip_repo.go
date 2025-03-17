@@ -19,6 +19,28 @@ func (repo *TripsRepository) CreateTrip(trip models.Trip) (any, error) {
 	return trip, nil
 }
 
+func (repo *TripsRepository) UpdateTrip(trip models.Trip) (any, error) {
+	result := repo.DB.Table("trips.trips").Where("trip_id = ?", trip.TripID).Updates(&trip)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return trip, nil
+}
+
+func (repo *TripsRepository) DeleteTrip(tripID int) error {
+	result := repo.DB.Table("albums.album_trips").Where("trip_id =?", tripID).Delete("trips.trips")
+	if result.Error != nil {
+		return result.Error
+	}
+
+	result = repo.DB.Table("trips.trips").Delete(&models.Trip{}, tripID)
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil
+}
+
 func (repo *TripsRepository) GetAllTrips() ([]models.Trip, error) {
 	var trips []models.Trip
 	result := repo.DB.Table("trips.trips").Find(&trips)

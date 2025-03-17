@@ -1,7 +1,7 @@
 package models
 
 type Trip struct {
-	TripID      uint   `gorm:"primaryKey;autoIncrement"`
+	TripID      int    `gorm:"primaryKey;autoIncrement"`
 	UserID      uint   `json:"user_id" db:"user_id"`
 	Name        string `json:"name" db:"name"`
 	Description string `json:"description,omitempty" db:"description"`
