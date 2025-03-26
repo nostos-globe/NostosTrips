@@ -19,6 +19,11 @@ func init() {
 		log.Printf("Warning: .env file not found or error loading it: %v", err)
 	}
 
+	minioManager := config.InitMinIO()
+	if minioManager == nil {
+		log.Println("Faliing to init MinIO")
+	}
+
 	secretsManager := config.GetSecretsManager()
 	if secretsManager != nil {
 		secrets := secretsManager.LoadSecrets()
@@ -51,21 +56,28 @@ func main() {
 
 	// Initialize controllers
 	tripHandler := &controller.TripController{TripService: tripService, MediaService: mediaService, AuthClient: authClient}
+	mediaHandler := &controller.MediaController{MediaService: mediaService, AuthClient: authClient}
 
 	// Initialize Gin
 	r := gin.Default()
 
-	// Profile routes
+	// Trip routes
 	api := r.Group("/api/trips")
 	{
 		api.POST("/", tripHandler.CreateTrip)
-
 		api.GET("/", tripHandler.GetAllTrips)
 		api.GET("/myTrips", tripHandler.GetMyTrips)
 		api.GET("/:id", tripHandler.GetTripByID)
-
 		api.PUT("/update", tripHandler.UpdateTrip)
 		api.DELETE("/delete/:id", tripHandler.DeleteTrip)
+	}
+
+	// Media routes in separate group
+	mediaApi := r.Group("/api/media")
+	{
+		mediaApi.POST("/trip/:trip_id", mediaHandler.UploadMedia)
+		mediaApi.GET("/:media_id", mediaHandler.GetMediaURL)
+		mediaApi.DELETE("/trip/:trip_id/:media_id", mediaHandler.DeleteMedia)
 	}
 
 	// Start server
