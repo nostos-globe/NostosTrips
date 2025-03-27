@@ -36,7 +36,7 @@ func (repo *MediaRepository) DeleteMedia(mediaID int64) error {
 
 func (r *MediaRepository) GetMediaByID(mediaID int64) (*models.Media, error) {
     var media models.Media
-    result := r.DB.First(&media, mediaID)
+    result := r.DB.Table("media.media").First(&media, mediaID)
     if result.Error != nil {
         return nil, result.Error
     }
@@ -50,4 +50,25 @@ func (r *MediaRepository) AreFriends(userID1, userID2 int64) bool {
         userID1, userID2, userID2, userID1).
         Count(&count)
     return count > 0
+}
+
+func (r *MediaRepository) GetLocationByCountryAndCity(location *models.Location) (*models.Location, error) {
+    var result models.Location
+    dbResult := r.DB.Table("locations.locations").
+        Where("country = ? AND city = ?", location.Country, location.City).
+        First(&result)
+    
+    if dbResult.Error != nil {
+        return nil, dbResult.Error
+    }
+    
+    return &result, nil
+}
+
+func (r *MediaRepository) SaveLocationInfo(location *models.Location) error {
+    result := r.DB.Table("locations.locations").Create(location)
+	if result.Error!= nil {
+		return result.Error
+	}	
+	return nil
 }

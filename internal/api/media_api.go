@@ -5,13 +5,15 @@ import (
     "main/internal/service"
     "net/http"
     "strconv"
-	"time"
+    "time"
+    "fmt"
     "github.com/gin-gonic/gin"
 )
 
 type MediaController struct {
-    MediaService *service.MediaService
-    AuthClient   *service.AuthClient
+    MediaService     *service.MediaService
+    AuthClient       *service.AuthClient
+    GeocodingService *service.GeocodingService
 }
 
 func (c *MediaController) UploadMedia(ctx *gin.Context) {
@@ -39,10 +41,17 @@ func (c *MediaController) UploadMedia(ctx *gin.Context) {
         ctx.JSON(http.StatusBadRequest, gin.H{"error": "no file provided"})
         return
     }
+    defer file.Close()
 
     visibility := models.VisibilityEnum(ctx.PostForm("visibility"))
     if visibility == "" {
         visibility = models.Public
+    }
+
+    // Extract metadata
+    metadata, err := c.MediaService.ExtractMetadata(file, header)
+    if err != nil {
+        fmt.Printf("Warning: Failed to extract metadata: %v\n", err)
     }
 
     objectName, err := c.MediaService.UploadMedia(int64(userID), file, header, visibility)
@@ -51,16 +60,20 @@ func (c *MediaController) UploadMedia(ctx *gin.Context) {
         return
     }
 
-    // Create media record with trip association
+
+    // Create media record with metadata
     media := models.Media{
-        TripID:      tripID,
-        UserID:      int64(userID),
-        LocationID:  3,  // Will be handled as NULL by GORM
-        Type:        "image",
-        FilePath:    objectName,
-        Visibility:  visibility,
-        UploadDate:  time.Now(),
-        CaptureDate: time.Now(),
+        TripID:       tripID,
+        UserID:       int64(userID),
+        LocationID:   3,
+        Type:         metadata.Type,
+        FilePath:     objectName,
+        Visibility:   visibility,
+        UploadDate:   time.Now(),
+        CaptureDate:  metadata.CaptureDate,
+        GpsLatitude:  metadata.Latitude,
+        GpsLongitude: metadata.Longitude,
+        GpsAltitude:  metadata.Altitude,
     }
 
     err = c.MediaService.SaveMedia(&media)
@@ -71,7 +84,18 @@ func (c *MediaController) UploadMedia(ctx *gin.Context) {
 
     ctx.JSON(http.StatusOK, gin.H{
         "message": "media uploaded successfully",
-        "path": objectName,
+        "path":    objectName,
+        "metadata": gin.H{
+            "type":        metadata.Type,
+            "captureDate": metadata.CaptureDate,
+            "location": gin.H{
+                "latitude":  metadata.Latitude,
+                "longitude": metadata.Longitude,
+                "altitude":  metadata.Altitude,
+                "city":     metadata.City,
+                "country":  metadata.Country,
+            },
+        },
     })
 }
 

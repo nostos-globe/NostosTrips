@@ -13,7 +13,7 @@ const (
 )
 
 type Media struct {
-    MediaID      int64          `json:"media_id" gorm:"column:media_id"`
+    MediaID      int64          `gorm:"primaryKey;autoIncrement"`
     TripID       int64          `json:"trip_id" gorm:"column:trip_id"`
     UserID       int64          `json:"user_id" gorm:"column:user_id"`
     LocationID   int64          `json:"location_id" gorm:"column:location_id"`
@@ -25,4 +25,15 @@ type Media struct {
     GpsLatitude  float64        `json:"gps_latitude"`
     GpsLongitude float64        `json:"gps_longitude"`
     GpsAltitude  float64        `json:"gps_altitude"`
+}
+
+type MediaMetadata struct {
+    Type        string
+    LocationID  int64
+    CaptureDate time.Time
+    Latitude    float64
+    Longitude   float64
+    Altitude    float64
+    City        string
+    Country     string
 }

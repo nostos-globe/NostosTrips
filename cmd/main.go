@@ -53,10 +53,15 @@ func main() {
 	// Initialize services
 	tripService := &service.TripService{TripRepo: tripRepo}
 	mediaService := &service.MediaService{MediaRepo: mediaRepo}
+	geocodingService := &service.GeocodingService{}
 
 	// Initialize controllers
 	tripHandler := &controller.TripController{TripService: tripService, MediaService: mediaService, AuthClient: authClient}
-	mediaHandler := &controller.MediaController{MediaService: mediaService, AuthClient: authClient}
+	mediaHandler := &controller.MediaController{
+		MediaService:     mediaService, 
+		AuthClient:      authClient,
+		GeocodingService: geocodingService,
+	}
 
 	// Initialize Gin
 	r := gin.Default()
