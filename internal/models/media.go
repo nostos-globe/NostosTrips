@@ -28,12 +28,13 @@ type Media struct {
 }
 
 type MediaMetadata struct {
-    Type        string
-    LocationID  int64
-    CaptureDate time.Time
-    Latitude    float64
-    Longitude   float64
-    Altitude    float64
-    City        string
-    Country     string
+    Type                 string
+    LocationID           int64
+    CaptureDate          time.Time
+    Latitude             float64
+    Longitude            float64
+    Altitude             float64
+    City                 string
+    Country              string
+    RequiresManualLocation bool // New field to indicate if manual location is needed
 }

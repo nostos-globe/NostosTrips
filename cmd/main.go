@@ -48,18 +48,26 @@ func main() {
 	// Initialize repositories
 	tripRepo := &dbRepo.TripsRepository{DB: database}
 	mediaRepo := &dbRepo.MediaRepository{DB: database}
+
 	// Initialize authClient
 	authClient := &service.AuthClient{BaseURL: cfg.AuthServiceUrl}
+
+	// Initialize MinioService
+	minioService := service.NewMinioService()
+
 	// Initialize services
 	tripService := &service.TripService{TripRepo: tripRepo}
-	mediaService := &service.MediaService{MediaRepo: mediaRepo}
+	mediaService := &service.MediaService{
+		MediaRepo:    mediaRepo,
+		MinioService: minioService,
+	}
 	geocodingService := &service.GeocodingService{}
 
 	// Initialize controllers
 	tripHandler := &controller.TripController{TripService: tripService, MediaService: mediaService, AuthClient: authClient}
 	mediaHandler := &controller.MediaController{
-		MediaService:     mediaService, 
-		AuthClient:      authClient,
+		MediaService:     mediaService,
+		AuthClient:       authClient,
 		GeocodingService: geocodingService,
 	}
 
@@ -82,12 +90,14 @@ func main() {
 	{
 		mediaApi.POST("/trip/:trip_id", mediaHandler.UploadMedia)
 		mediaApi.GET("/:media_id", mediaHandler.GetMediaURL)
-		mediaApi.DELETE("/trip/:trip_id/:media_id", mediaHandler.DeleteMedia)
+		mediaApi.DELETE("/:media_id", mediaHandler.DeleteMedia)
+		mediaApi.POST("/:media_id/metadata", mediaHandler.AddMetadataToMedia)
+		//mediaApi.GET("/:media_id/metadata", mediaHandler.GetMediaMetadata)
 	}
 
 	// Start server
-	log.Println("Server running on http://localhost:8083")
-	if err := r.Run(":8083"); err != nil {
+	log.Println("Server running on http://localhost:8084")
+	if err := r.Run(":8084"); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
 }
