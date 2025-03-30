@@ -16,7 +16,7 @@ El servicio de viajes gestiona la creación y organización de viajes, permitien
 - **Lenguaje:** Go
 - **Base de Datos:** PostgreSQL
 - **Almacenamiento:** MinIO
-- **Cache:** Redis
+- **Cache:** Redis **NOT YET**
 - **Orquestación:** Docker
 
 ## Instalación
