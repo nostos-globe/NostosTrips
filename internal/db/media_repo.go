@@ -18,6 +18,15 @@ func (repo *MediaRepository) UpdateMedia(d int64, media *models.Media) error {
 	return nil
 }
 
+func (repo *MediaRepository) GetMediaByTripID(tripID int64) ([]*models.Media, error) {
+	var media []*models.Media
+	result := repo.DB.Table("media.media").Where("trip_id =?", tripID).Find(&media)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return media, nil
+}
+
 func (repo *MediaRepository) SaveMedia(media *models.Media) error {
 	result := repo.DB.Table("media.media").Create(media)
 	if result.Error != nil {

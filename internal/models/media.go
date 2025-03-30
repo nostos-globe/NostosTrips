@@ -38,3 +38,8 @@ type MediaMetadata struct {
     Country              string
     RequiresManualLocation bool // New field to indicate if manual location is needed
 }
+
+type MediaByTrip struct {
+    MediaID int64  `json:"mediaId"`
+    URL     string `json:"url"`
+}

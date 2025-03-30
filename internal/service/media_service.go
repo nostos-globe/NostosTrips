@@ -23,6 +23,38 @@ type MediaService struct {
 	MinioService *MinioService
 }
 
+func (s *MediaService) GetMediaByTripID(tripID int64, userID int64) ([]models.MediaByTrip, error) {
+	// Get media list from repository
+	mediaList, err := s.MediaRepo.GetMediaByTripID(tripID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get media: %w", err)
+	}
+
+	var response []models.MediaByTrip
+	for _, media := range mediaList {
+		// Check visibility permissions
+		if media.Visibility == "PRIVATE" && media.UserID != userID {
+			continue
+		}
+		if media.Visibility == "FRIENDS" && !s.MediaRepo.AreFriends(userID, media.UserID) {
+			continue
+		}
+
+		// Get presigned URL for the media
+		url, err := s.MinioService.GetPresignedURL(media.FilePath, time.Minute*5)
+		if err != nil {
+			continue
+		}
+
+		response = append(response, models.MediaByTrip{
+			MediaID: media.MediaID,
+			URL:     url,
+		})
+	}
+
+	return response, nil
+}
+
 func (s *MediaService) ChangeMediaVisibility(mediaID int64, i int64, visibility models.VisibilityEnum) error {
 	media, err := s.MediaRepo.GetMediaByID(mediaID)
 	if media == nil || err != nil {

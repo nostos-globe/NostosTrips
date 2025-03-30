@@ -94,6 +94,7 @@ func main() {
 		mediaApi.POST("/:media_id/metadata", mediaHandler.AddMetadataToMedia)
 		//mediaApi.GET("/:media_id/metadata", mediaHandler.GetMediaMetadata)
 		mediaApi.PUT("/:media_id/visibility", mediaHandler.ChangeMediaVisibility)
+		mediaApi.GET("/trip/:trip_id", mediaHandler.GetMediaByTripID)
 	}
 
 	// Start server
