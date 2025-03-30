@@ -93,6 +93,7 @@ func main() {
 		mediaApi.DELETE("/:media_id", mediaHandler.DeleteMedia)
 		mediaApi.POST("/:media_id/metadata", mediaHandler.AddMetadataToMedia)
 		//mediaApi.GET("/:media_id/metadata", mediaHandler.GetMediaMetadata)
+		mediaApi.PUT("/:media_id/visibility", mediaHandler.ChangeMediaVisibility)
 	}
 
 	// Start server

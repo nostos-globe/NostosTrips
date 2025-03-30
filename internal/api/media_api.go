@@ -69,10 +69,20 @@ func (c *MediaController) UploadMedia(ctx *gin.Context) {
 
 	// Create media record with metadata
 	media := models.Media{
-		TripID:       tripID,
-		UserID:       int64(userID),
-		LocationID:   func() int64 { if metadata.LocationID == 0 { return 0 }; return metadata.LocationID }(),
-		Type:         func() string { if metadata.Type == "" { return "" }; return metadata.Type }(),
+		TripID: tripID,
+		UserID: int64(userID),
+		LocationID: func() int64 {
+			if metadata.LocationID == 0 {
+				return 0
+			}
+			return metadata.LocationID
+		}(),
+		Type: func() string {
+			if metadata.Type == "" {
+				return ""
+			}
+			return metadata.Type
+		}(),
 		FilePath:     objectName,
 		Visibility:   visibility,
 		UploadDate:   time.Now(),
@@ -187,6 +197,46 @@ func (c *MediaController) AddMetadataToMedia(ctx *gin.Context) {
 		"message":  "metadata updated successfully",
 		"metadata": metadata,
 	})
+}
+
+func (c *MediaController) ChangeMediaVisibility(ctx *gin.Context) {
+	mediaID, err := strconv.ParseInt(ctx.Param("media_id"), 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid media ID"})
+		return
+	}
+
+	// Authenticate user
+	tokenCookie, err := ctx.Cookie("auth_token")
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
+		return
+	}
+
+	userID, err := c.AuthClient.GetUserID(tokenCookie)
+	if err != nil || userID == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to authenticate user"})
+		return
+	}
+
+	// Parse new visibility from request body
+	var requestBody struct {
+		Visibility models.VisibilityEnum `json:"visibility"`
+	}
+
+	if err := ctx.BindJSON(&requestBody); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body format"})
+		return
+	}
+
+	// Update media visibility
+	err = c.MediaService.ChangeMediaVisibility(mediaID, int64(userID), requestBody.Visibility)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to change media visibility"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "media visibility changed successfully"})
 }
 
 func (c *MediaController) DeleteMedia(ctx *gin.Context) {

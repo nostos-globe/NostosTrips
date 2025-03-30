@@ -23,6 +23,21 @@ type MediaService struct {
 	MinioService *MinioService
 }
 
+func (s *MediaService) ChangeMediaVisibility(mediaID int64, i int64, visibility models.VisibilityEnum) error {
+	media, err := s.MediaRepo.GetMediaByID(mediaID)
+	if media == nil || err != nil {
+		return err
+	}
+
+	media.Visibility = visibility
+
+	err = s.MediaRepo.UpdateMedia(mediaID, media)
+	if err != nil {
+		return fmt.Errorf("failed to update media: %w", err)
+	}
+	return nil
+}
+
 func (s *MediaService) UpdateMediaMetadata(mediaID int64, i int64, latitude float64, longitude float64, altitude float64) error {
 	media, err := s.MediaRepo.GetMediaByID(mediaID)
 	if media == nil || err != nil {
