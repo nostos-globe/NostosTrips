@@ -111,6 +111,15 @@ NostosTrips/
 └── README.md             # This file
 ```
 
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/nostos-globe/NostosTrips.git
+cd NostosTrips
+```
+
 ## Development
 
 To run the service locally, ensure you have Docker and Docker Compose installed. Then, execute:
@@ -118,14 +127,5 @@ To run the service locally, ensure you have Docker and Docker Compose installed.
 ```bash
 go mod download
 go run cmd/main.go
-```
-
-## Installation
-
-Clone the repository:
-
-```bash
-git clone https://github.com/yourusername/NostosTrips.git
-cd NostosTrips
 ```
 
