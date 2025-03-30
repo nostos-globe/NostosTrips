@@ -148,11 +148,24 @@ func (s *MediaService) ExtractMetadata(file multipart.File, header *multipart.Fi
 	}
 
 	// Determine media type
+	// Get file extension and MIME type
 	fileExt := strings.ToLower(filepath.Ext(header.Filename))
-	switch fileExt {
-	case ".jpg", ".jpeg", ".png", ".gif":
+	buffer := make([]byte, 512)
+	_, err := file.Read(buffer)
+	if err != nil {
+		return nil, err
+	}
+	file.Seek(0, 0) // Reset file pointer
+
+	mimeType := http.DetectContentType(buffer)
+
+	// Check both extension and MIME type
+	switch {
+	case fileExt == ".jpg" || fileExt == ".jpeg" || fileExt == ".png" || fileExt == ".gif" || fileExt == ".webp" || fileExt == ".tiff" ||
+		strings.HasPrefix(mimeType, "image/"):
 		metadata.Type = "photo"
-	case ".mp4", ".mov", ".avi":
+	case fileExt == ".mp4" || fileExt == ".mov" || fileExt == ".avi" || fileExt == ".mkv" || fileExt == ".webm" || fileExt == ".flv" ||
+		strings.HasPrefix(mimeType, "video/"):
 		metadata.Type = "video"
 	default:
 		metadata.Type = "unknown"
