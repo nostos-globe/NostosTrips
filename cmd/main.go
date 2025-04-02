@@ -79,6 +79,7 @@ func main() {
 	{
 		api.POST("/", tripHandler.CreateTrip)
 		api.GET("/", tripHandler.GetAllTrips)
+		api.GET("/public", tripHandler.GetAllPublicTrips)
 		api.GET("/myTrips", tripHandler.GetMyTrips)
 		api.GET("/:id", tripHandler.GetTripByID)
 		api.PUT("/update", tripHandler.UpdateTrip)

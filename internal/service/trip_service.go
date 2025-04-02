@@ -75,3 +75,11 @@ func (s *TripService) GetMyTrips(userID uint) ([]models.Trip, error) {
 	}
 	return trips, nil
 }
+
+func (s *TripService) GetAllPublicTrips() ([]models.Trip, error) {
+    trips, err := s.TripRepo.GetAllPublicTrips()
+    if err != nil {
+        return nil, err
+    }
+    return trips, nil
+}

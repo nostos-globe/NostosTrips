@@ -68,3 +68,12 @@ func (repo *TripsRepository) GetTripByID(tripID int) (models.Trip, error) {
 
 	return trip, nil
 }
+
+func (r *TripsRepository) GetAllPublicTrips() ([]models.Trip, error) {
+    var trips []models.Trip
+    result := r.DB.Table("trips.trips").Where("visibility = ?", "PUBLIC").Find(&trips)
+    if result.Error != nil {
+        return nil, result.Error
+    }
+    return trips, nil
+}

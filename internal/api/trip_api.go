@@ -4,7 +4,6 @@ import (
 	"main/internal/models"
 	"main/internal/service"
 	"net/http"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -151,6 +150,31 @@ func (c *TripController) GetAllTrips(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, trips)
 }
 
+func (c *TripController) GetAllPublicTrips(ctx *gin.Context) {
+	trips, err := c.TripService.GetAllPublicTrips()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve public trips"})
+		return
+	}
+
+	var tripsWithMedia []gin.H
+	for _, trip := range trips {
+		media, err := c.MediaService.GetMediaByTripID(int64(trip.TripID), int64(trip.UserID))
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve media"})
+			return
+		}
+
+		tripWithMedia := gin.H{
+			"trip":  trip,
+			"media": media,
+		}
+		tripsWithMedia = append(tripsWithMedia, tripWithMedia)
+	}
+
+	ctx.JSON(http.StatusOK, tripsWithMedia)
+}
+
 func (c *TripController) GetMyTrips(ctx *gin.Context) {
 	// Get user ID from authenticated context
 	tokenCookie, err := ctx.Cookie("auth_token")
@@ -165,11 +189,28 @@ func (c *TripController) GetMyTrips(ctx *gin.Context) {
 		return
 	}
 
+	// Get trips with their associated media
 	trips, err := c.TripService.GetMyTrips(TokenResponse)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve trips"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, trips)
+	// For each trip, fetch its associated media
+	var tripsWithMedia []gin.H
+	for _, trip := range trips {
+		media, err := c.MediaService.GetMediaByTripID(int64(trip.TripID), int64(TokenResponse))
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve media"})
+			return
+		}
+
+		tripWithMedia := gin.H{
+			"trip":  trip,
+			"media": media,
+		}
+		tripsWithMedia = append(tripsWithMedia, tripWithMedia)
+	}
+
+	ctx.JSON(http.StatusOK, tripsWithMedia)
 }
