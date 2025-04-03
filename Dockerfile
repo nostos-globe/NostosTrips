@@ -17,7 +17,7 @@ COPY . .
 RUN ls -lah /app
 
 # Compila el servicio
-RUN go build -o profile-service ./cmd/main.go
+RUN go build -o trips-service ./cmd/main.go
 
 
 # Imagen final para producción (más ligera)
