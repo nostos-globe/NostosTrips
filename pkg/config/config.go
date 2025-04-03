@@ -24,13 +24,13 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		DBHost:            "localhost",
-		DBUser:            "root",
-		DBPassword:        "root",
-		DBName:            "nostos",
-		DBPort:            "5432",
-		JWTSecret:         "SECRET",
-		AuthServiceUrl:    "http://localhost:8082",
-		ProfileServiceUrl: "http://localhost:8083",
+		DBHost:         os.Getenv("DB_HOST"),
+		DBUser:         os.Getenv("DB_USER"),
+		DBPassword:     os.Getenv("DB_PASSWORD"),
+		DBName:         os.Getenv("DB_NAME"),
+		DBPort:         os.Getenv("DB_PORT"),
+		JWTSecret:      os.Getenv("JWT_SECRET"),
+		AuthServiceUrl: os.Getenv("AUTH_SERVICE_URL"),
+		ProfileServiceUrl: os.Getenv("PROFILE_SERVICE_URL"),
 	}
 }
