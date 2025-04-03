@@ -27,6 +27,7 @@ func (repo *MediaRepository) GetMediaByTripID(tripID int64) ([]*models.Media, er
 	return media, nil
 }
 
+
 func (repo *MediaRepository) SaveMedia(media *models.Media) error {
 	result := repo.DB.Table("media.media").Create(media)
 	if result.Error != nil {

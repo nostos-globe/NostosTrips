@@ -55,6 +55,31 @@ func (s *MediaService) GetMediaByTripID(tripID int64, userID int64) ([]models.Me
 	return response, nil
 }
 
+
+func (s *MediaService) GetMediaDataByTripID(tripID int64, userID int64) ([]models.Media, error) {
+	// Get media list from repository
+	mediaList, err := s.MediaRepo.GetMediaByTripID(tripID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get media: %w", err)
+	}
+
+	// Filter media based on visibility permissions
+	var filteredMedia []models.Media
+	for _, media := range mediaList {
+		// Check visibility permissions
+		if media.Visibility == "PRIVATE" && media.UserID != userID {
+			continue
+		}
+		if media.Visibility == "FRIENDS" && !s.MediaRepo.AreFriends(userID, media.UserID) {
+			continue
+		}
+		filteredMedia = append(filteredMedia, *media)  // Dereference the pointer
+	}
+
+	return filteredMedia, nil
+}
+
+
 func (s *MediaService) ChangeMediaVisibility(mediaID int64, i int64, visibility models.VisibilityEnum) error {
 	media, err := s.MediaRepo.GetMediaByID(mediaID)
 	if media == nil || err != nil {
@@ -81,7 +106,7 @@ func (s *MediaService) UpdateMediaMetadata(mediaID int64, i int64, latitude floa
 	media.GpsAltitude = altitude
 
 	// Get location info based on coordinates
-	locationInfo, err := s.getLocationInfo(latitude, longitude)
+	locationInfo, err := s.GetLocationInfo(latitude, longitude)
 	if err != nil {
 		return err
 	}
@@ -162,10 +187,6 @@ func (s *MediaService) DeleteMediaByTripID(tripID string) error {
 	return nil
 }
 
-func (s *MediaService) GetMediaByID(id int) (any, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
 func (s *MediaService) SaveMedia(media *models.Media) error {
 	return s.MediaRepo.SaveMedia(media)
 }
@@ -242,7 +263,7 @@ func (s *MediaService) ExtractMetadata(file multipart.File, header *multipart.Fi
 				}
 
 				// Get location info if coordinates are available
-				if locationInfo, err := s.getLocationInfo(lat, long); err == nil {
+				if locationInfo, err := s.GetLocationInfo(lat, long); err == nil {
 					locationFound, err := s.GetLocationByCountryAndCity(locationInfo)
 					fmt.Printf("Location found: %s, %s\n", locationInfo.City, locationInfo.Country)
 
@@ -299,40 +320,41 @@ func (s *MediaService) ExtractMetadata(file multipart.File, header *multipart.Fi
 	return metadata, nil
 }
 
-func (s *MediaService) getLocationInfo(lat, long float64) (*models.Location, error) {
-	// Using OpenStreetMap Nominatim API (free, no API key required)
-	url := fmt.Sprintf("https://nominatim.openstreetmap.org/reverse?format=json&lat=%f&lon=%f", lat, long)
+// Change from getLocationInfo to GetLocationInfo
+func (s *MediaService) GetLocationInfo(lat, long float64) (*models.Location, error) {
+    // Using OpenStreetMap Nominatim API (free, no API key required)
+    url := fmt.Sprintf("https://nominatim.openstreetmap.org/reverse?format=json&lat=%f&lon=%f", lat, long)
 
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
+    client := &http.Client{}
+    req, err := http.NewRequest("GET", url, nil)
+    if err != nil {
+        return nil, err
+    }
 
-	req.Header.Set("User-Agent", "NostosTrips/1.0")
+    req.Header.Set("User-Agent", "NostosTrips/1.0")
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+    resp, err := client.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
 
-	var result struct {
-		Address struct {
-			City    string `json:"city"`
-			Country string `json:"country"`
-		} `json:"address"`
-	}
+    var result struct {
+        Address struct {
+            City    string `json:"city"`
+            Country string `json:"country"`
+        } `json:"address"`
+    }
 
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
+    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+        return nil, err
+    }
 
-	return &models.Location{
-		Name:    result.Address.City + ", " + result.Address.Country,
-		City:    result.Address.City,
-		Country: result.Address.Country,
-	}, nil
+    return &models.Location{
+        Name:    result.Address.City + ", " + result.Address.Country,
+        City:    result.Address.City,
+        Country: result.Address.Country,
+    }, nil
 }
 
 func (s *MediaService) GetLocationByCountryAndCity(location *models.Location) (*models.Location, error) {

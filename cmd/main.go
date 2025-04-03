@@ -51,6 +51,7 @@ func main() {
 
 	// Initialize authClient
 	authClient := &service.AuthClient{BaseURL: cfg.AuthServiceUrl}
+	profileClient := &service.ProfileClient{BaseURL: cfg.ProfileServiceUrl}
 
 	// Initialize MinioService
 	minioService := service.NewMinioService()
@@ -64,7 +65,12 @@ func main() {
 	geocodingService := &service.GeocodingService{}
 
 	// Initialize controllers
-	tripHandler := &controller.TripController{TripService: tripService, MediaService: mediaService, AuthClient: authClient}
+	tripHandler := &controller.TripController{
+        TripService:   tripService,
+        MediaService:  mediaService,
+        AuthClient:    authClient,
+        ProfileClient: profileClient,
+    }
 	mediaHandler := &controller.MediaController{
 		MediaService:     mediaService,
 		AuthClient:       authClient,
@@ -81,6 +87,7 @@ func main() {
 		api.GET("/", tripHandler.GetAllTrips)
 		api.GET("/public", tripHandler.GetAllPublicTrips)
 		api.GET("/myTrips", tripHandler.GetMyTrips)
+		api.GET("/following", tripHandler.GetFollowedUsersTrips) 
 		api.GET("/:id", tripHandler.GetTripByID)
 		api.PUT("/update", tripHandler.UpdateTrip)
 		api.DELETE("/delete/:id", tripHandler.DeleteTrip)
