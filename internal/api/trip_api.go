@@ -1,17 +1,18 @@
 package controller
 
 import (
+	"fmt"
 	"main/internal/models"
 	"main/internal/service"
 	"net/http"
-	"fmt"
+
 	"github.com/gin-gonic/gin"
 )
 
 type TripController struct {
-	TripService  *service.TripService
-	MediaService *service.MediaService
-	AuthClient   *service.AuthClient
+	TripService   *service.TripService
+	MediaService  *service.MediaService
+	AuthClient    *service.AuthClient
 	ProfileClient *service.ProfileClient
 }
 
@@ -167,6 +168,11 @@ func (c *TripController) GetAllPublicTrips(ctx *gin.Context) {
 			return
 		}
 
+		// Skip trips that have no media
+		if len(media) == 0 {
+			continue
+		}
+
 		tripWithMedia := gin.H{
 			"trip":  trip,
 			"media": media,
@@ -230,103 +236,116 @@ func (c *TripController) GetMyTrips(ctx *gin.Context) {
 }
 
 func (c *TripController) GetFollowedUsersTrips(ctx *gin.Context) {
-    fmt.Printf("Starting GetFollowedUsersTrips request\n")
+	fmt.Printf("Starting GetFollowedUsersTrips request\n")
 
-    tokenCookie, err := ctx.Cookie("auth_token")
-    if err != nil {
-        fmt.Printf("Error: No auth token found - %v\n", err)
-        ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
-        return
-    }
+	tokenCookie, err := ctx.Cookie("auth_token")
+	if err != nil {
+		fmt.Printf("Error: No auth token found - %v\n", err)
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
+		return
+	}
 
-    userID, err := c.AuthClient.GetUserID(tokenCookie)
-    if err != nil || userID == 0 {
-        fmt.Printf("Error: Failed to get user ID - %v\n", err)
-        ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to find this user"})
-        return
-    }
+	userID, err := c.AuthClient.GetUserID(tokenCookie)
+	if err != nil || userID == 0 {
+		fmt.Printf("Error: Failed to get user ID - %v\n", err)
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to find this user"})
+		return
+	}
 
-    // Get followed users and followers from Profile service
-    followedUsers, err := c.ProfileClient.GetFollowing(tokenCookie, userID)
-    if err != nil {
-        fmt.Printf("Error: Failed to get followed users - %v\n", err)
-        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve followed users"})
-        return
-    }
+	// Get followed users and followers from Profile service
+	followedUsers, err := c.ProfileClient.GetFollowing(tokenCookie, userID)
+	if err != nil {
+		fmt.Printf("Error: Failed to get followed users - %v\n", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve followed users"})
+		return
+	}
 
 	fmt.Printf("Success: Following - %v\n", followedUsers)
 
-    followers, err := c.ProfileClient.GetFollowers(tokenCookie, userID)
-    if err != nil {
-        fmt.Printf("Error: Failed to get followers - %v\n", err)
-        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve followers"})
-        return
-    }
+	followers, err := c.ProfileClient.GetFollowers(tokenCookie, userID)
+	if err != nil {
+		fmt.Printf("Error: Failed to get followers - %v\n", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve followers"})
+		return
+	}
 
-    fmt.Printf("Success: Followers - %v\n", followers)
+	fmt.Printf("Success: Followers - %v\n", followers)
 
-    // Create a map of mutual follows (friends)
-    mutualFollows := make(map[int]bool)
-    for _, follower := range followers {
-        mutualFollows[follower] = true
-    }
+	// Create a map of mutual follows (friends)
+	mutualFollows := make(map[int]bool)
+	for _, follower := range followers {
+		mutualFollows[follower] = true
+	}
 
-    var allTripsWithMedia []gin.H
-    for _, followedID := range followedUsers {
-        fmt.Printf("Fetching trips for followed user ID: %d\n", followedID)
-        
-        var trips []models.Trip
-        if mutualFollows[followedID] {
-            // Get both public and friends-only trips for mutual follows
-            trips, err = c.TripService.GetPublicAndFriendsTripsForUser(uint(followedID))
-			fmt.Printf("Found trips for user %d - %v\n",followedID ,trips, err)
-        } else {
-            // Get only public trips for non-mutual follows
-            trips, err = c.TripService.GetPublicTripsForUser(uint(followedID))
-			fmt.Printf("Found trips for user %d - %v\n",followedID ,trips, err)
-        }
+	var allTripsWithMedia []gin.H
+	for _, followedID := range followedUsers {
+		fmt.Printf("Fetching trips for followed user ID: %d\n", followedID)
 
-        if err != nil {
-            fmt.Printf("Error: Failed to retrieve trips for user %d - %v\n", followedID, err)
-            continue
-        }
+		var trips []models.Trip
+		if mutualFollows[followedID] {
+			// Get both public and friends-only trips for mutual follows
+			trips, err = c.TripService.GetPublicAndFriendsTripsForUser(uint(followedID))
+			fmt.Printf("Found trips for user %d - %v\n", followedID, trips, err)
+		} else {
+			// Get only public trips for non-mutual follows
+			trips, err = c.TripService.GetPublicTripsForUser(uint(followedID))
+			fmt.Printf("Found trips for user %d - %v\n", followedID, trips, err)
+		}
 
-        fmt.Printf("Found %d trips for user %d\n", len(trips), followedID)
+		if err != nil {
+			fmt.Printf("Error: Failed to retrieve trips for user %d - %v\n", followedID, err)
+			continue
+		}
 
-        for _, trip := range trips {
-            fmt.Printf("Fetching media for trip ID: %d\n", trip.TripID)
-            media, err := c.MediaService.GetMediaByTripID(int64(trip.TripID), int64(userID))
-            if err != nil {
-                fmt.Printf("Error: Failed to retrieve media for trip %d - %v\n", trip.TripID, err)
-                continue
-            }
+		fmt.Printf("Found %d trips for user %d\n", len(trips), followedID)
 
-			mediaData , err := c.MediaService.GetMediaDataByTripID(int64(trip.TripID), int64(followedID))
-            if err!= nil {
-                fmt.Printf("Error: Failed to retrieve media for trip %d - %v\n", trip.TripID, err)
-                continue
-            }
+		for _, trip := range trips {
+			fmt.Printf("Fetching media for trip ID: %d\n", trip.TripID)
+			media, err := c.MediaService.GetMediaByTripID(int64(trip.TripID), int64(userID))
+			if err != nil {
+				fmt.Printf("Error: Failed to retrieve media for trip %d - %v\n", trip.TripID, err)
+				continue
+			}
 
-            var country string
-            for _, m := range mediaData {
-                if m.GpsLatitude != 0 && m.GpsLongitude != 0 {
-                    locationInfo, err := c.MediaService.GetLocationInfo(m.GpsLatitude, m.GpsLongitude)
-                    if err == nil && locationInfo.Country != "" {
-                        country = locationInfo.Country
-                        break
-                    }
-                }
-            }
+			// Skip trips with no media
+			if len(media) == 0 {
+				fmt.Printf("Skipping trip %d as it has no media\n", trip.TripID)
+				continue
+			}
 
-            tripWithMedia := gin.H{
-                "trip":     trip,
-                "media":    media,
-                "user_id":  followedID,
-                "country":  country,
-            }
-            allTripsWithMedia = append(allTripsWithMedia, tripWithMedia)
-        }
-    }
+			mediaData, err := c.MediaService.GetMediaDataByTripID(int64(trip.TripID), int64(followedID))
+			if err != nil {
+				fmt.Printf("Error: Failed to retrieve media for trip %d - %v\n", trip.TripID, err)
+				continue
+			}
 
-    fmt.Printf("Successfully completed GetFollowedUsersTrips request with %d trips\n", len(allTripsWithMedia))
-    ctx.JSON(http.StatusOK, allTripsWithMedia)}
+			// Skip if mediaData is empty
+			if len(mediaData) == 0 {
+				fmt.Printf("Skipping trip %d as it has no media data\n", trip.TripID)
+				continue
+			}
+
+			var country string
+			for _, m := range mediaData {
+				if m.GpsLatitude != 0 && m.GpsLongitude != 0 {
+					locationInfo, err := c.MediaService.GetLocationInfo(m.GpsLatitude, m.GpsLongitude)
+					if err == nil && locationInfo.Country != "" {
+						country = locationInfo.Country
+						break
+					}
+				}
+			}
+
+			tripWithMedia := gin.H{
+				"trip":    trip,
+				"media":   media,
+				"user_id": followedID,
+				"country": country,
+			}
+			allTripsWithMedia = append(allTripsWithMedia, tripWithMedia)
+		}
+	}
+
+	fmt.Printf("Successfully completed GetFollowedUsersTrips request with %d trips\n", len(allTripsWithMedia))
+	ctx.JSON(http.StatusOK, allTripsWithMedia)
+}
