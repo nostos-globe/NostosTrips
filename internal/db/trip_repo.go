@@ -2,7 +2,7 @@ package db
 
 import (
 	"main/internal/models"
-
+	"fmt"
 	"gorm.io/gorm"
 )
 
@@ -59,6 +59,20 @@ func (repo *TripsRepository) GetMyTrips(userID uint) ([]models.Trip, error) {
 	return trips, nil
 }
 
+func (repo *TripsRepository) SearchTrips(query string, userID uint) ([]models.Trip, error) {
+	var trips []models.Trip
+	searchQuery := "%" + query + "%"
+	result := repo.DB.Table("trips.trips").
+	    Where("user_id != ? AND (name ILIKE ? OR description ILIKE ?)", 
+	        userID, searchQuery, searchQuery).
+	    Find(&trips)
+	if result.Error != nil {
+	    return nil, result.Error
+	}
+	fmt.Printf("Search results from DB: %+v\n", trips)
+	return trips, nil
+}
+
 func (repo *TripsRepository) GetTripByID(tripID int) (models.Trip, error) {
 	var trip models.Trip
 	result := repo.DB.Table("trips.trips").First(&trip, tripID)
@@ -74,6 +88,16 @@ func (r *TripsRepository) GetAllPublicTrips() ([]models.Trip, error) {
     result := r.DB.Table("trips.trips").Where("visibility = ?", "PUBLIC").Find(&trips)
     if result.Error != nil {
         return nil, result.Error
+    }
+    return trips, nil
+}
+
+func (repo *TripsRepository) GetTripsByUserID(userID uint) ([]models.Trip, error) {
+    var trips []models.Trip
+    result := repo.DB.Table("trips.trips").Where("user_id =?", userID).Find(&trips)	
+
+    if result.Error!= nil {
+        return nil, result.Error 	
     }
     return trips, nil
 }

@@ -143,6 +143,57 @@ func (c *TripController) GetTripByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, trip)
 }
 
+func (c *TripController) SearchTrips(ctx *gin.Context) {
+	var searchRequest struct {
+		Query string `json:"query"`
+	}
+	if err := ctx.ShouldBindJSON(&searchRequest); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	tokenCookie, err := ctx.Cookie("auth_token")
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
+		return
+	}
+
+	TokenResponse, err := c.AuthClient.GetUserID(tokenCookie)
+	if err != nil || TokenResponse == 0 {
+		fmt.Printf("Error: Failed to get user ID - %v\n", err)
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to find this user"})
+		return
+	}
+
+	trips, err := c.TripService.SearchTrips(searchRequest.Query, TokenResponse)
+	if err!= nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	var tripsWithMedia []gin.H
+	for _, trip := range trips {
+		media, err := c.MediaService.GetMediaByTripID(int64(trip.TripID), int64(trip.UserID))
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve media"})
+			return
+		}
+
+		// Skip trips that have no media
+		if len(media) == 0 {
+			continue
+		}
+
+		tripWithMedia := gin.H{
+			"trip":  trip,
+			"media": media,
+		}
+		tripsWithMedia = append(tripsWithMedia, tripWithMedia)
+	}
+
+	ctx.JSON(http.StatusOK, tripsWithMedia)
+}
+
 func (c *TripController) GetAllTrips(ctx *gin.Context) {
 	trips, err := c.TripService.GetAllTrips()
 	if err != nil {
@@ -182,7 +233,38 @@ func (c *TripController) GetAllPublicTrips(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, tripsWithMedia)
 }
+func (c *TripController) GetTripsByUserID(ctx *gin.Context) {
+	userID := ctx.Param("id")
+	
+	// Get user's trips with their associated media
+	trips, err := c.TripService.GetTripsByUserID(userID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve user's trips"})
+		return
+	}
 
+	var tripsWithMedia []gin.H
+	for _, trip := range trips {
+		media, err := c.MediaService.GetMediaByTripID(int64(trip.TripID), int64(trip.UserID))
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve media"})
+			return
+		}
+
+		// Skip trips that have no media
+		if len(media) == 0 {
+			continue
+		}
+
+		tripWithMedia := gin.H{
+			"trip":  trip,
+			"media": media,
+		}
+		tripsWithMedia = append(tripsWithMedia, tripWithMedia)
+	}
+
+	ctx.JSON(http.StatusOK, tripsWithMedia)
+}
 func (c *TripController) GetMyTrips(ctx *gin.Context) {
 	fmt.Printf("Starting GetMyTrips request\n")
 

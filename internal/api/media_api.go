@@ -239,6 +239,34 @@ func (c *MediaController) ChangeMediaVisibility(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "media visibility changed successfully"})
 }
 
+func (c *MediaController) GetMediaVisibility(ctx *gin.Context) {
+	mediaID, err := strconv.ParseInt(ctx.Param("media_id"), 10, 64)
+	if err!= nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid media ID"})
+		return
+	}
+
+	tokenCookie, err := ctx.Cookie("auth_token")
+	if err!= nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
+		return
+	}
+
+	userID, err := c.AuthClient.GetUserID(tokenCookie)
+	if err!= nil || userID == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to authenticate user"})
+		return
+	}
+
+	visibility, err := c.MediaService.GetMediaVisibility(mediaID, uint(userID))
+	if err!= nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get media visibility"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"visibility": visibility})
+}
+
 func (c *MediaController) GetMediaByTripID(ctx *gin.Context) {
 	tripID, err := strconv.ParseInt(ctx.Param("trip_id"), 10, 64)
 	if err != nil {

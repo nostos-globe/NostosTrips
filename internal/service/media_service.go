@@ -95,6 +95,15 @@ func (s *MediaService) ChangeMediaVisibility(mediaID int64, i int64, visibility 
 	return nil
 }
 
+func (s *MediaService) GetMediaVisibility(mediaID int64, userID uint) (string, error) {
+	media, err := s.MediaRepo.GetMediaByID(mediaID)
+	if err != nil {
+		return "", err  
+	}
+
+	return string(media.Visibility), nil 
+}
+
 func (s *MediaService) UpdateMediaMetadata(mediaID int64, i int64, latitude float64, longitude float64, altitude float64) error {
 	media, err := s.MediaRepo.GetMediaByID(mediaID)
 	if media == nil || err != nil {

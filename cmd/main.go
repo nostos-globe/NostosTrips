@@ -85,9 +85,11 @@ func main() {
 	{
 		api.POST("/", tripHandler.CreateTrip)
 		api.GET("/", tripHandler.GetAllTrips)
+		api.POST("/search", tripHandler.SearchTrips)
 		api.GET("/public", tripHandler.GetAllPublicTrips)
 		api.GET("/myTrips", tripHandler.GetMyTrips)
 		api.GET("/following", tripHandler.GetFollowedUsersTrips) 
+		api.GET("/user/:id", tripHandler.GetTripsByUserID) 
 		api.GET("/:id", tripHandler.GetTripByID)
 		api.PUT("/update", tripHandler.UpdateTrip)
 		api.DELETE("/delete/:id", tripHandler.DeleteTrip)
@@ -101,6 +103,7 @@ func main() {
 		mediaApi.DELETE("/:media_id", mediaHandler.DeleteMedia)
 		mediaApi.POST("/:media_id/metadata", mediaHandler.AddMetadataToMedia)
 		//mediaApi.GET("/:media_id/metadata", mediaHandler.GetMediaMetadata)
+		mediaApi.GET("/:media_id/visibility", mediaHandler.GetMediaVisibility)
 		mediaApi.PUT("/:media_id/visibility", mediaHandler.ChangeMediaVisibility)
 		mediaApi.GET("/trip/:trip_id", mediaHandler.GetMediaByTripID)
 	}

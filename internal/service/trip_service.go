@@ -91,3 +91,17 @@ func (s *TripService) GetPublicTripsForUser(userID uint) ([]models.Trip, error) 
 func (s *TripService) GetPublicAndFriendsTripsForUser(userID uint) ([]models.Trip, error) {
     return s.TripRepo.GetPublicAndFriendsTripsForUser(userID)
 }
+
+func (s *TripService) GetTripsByUserID(userID string) ([]models.Trip, error) {
+
+	id, err := strconv.Atoi(userID)
+	if err!= nil {
+		return nil, err
+	}
+
+	return s.TripRepo.GetTripsByUserID(uint(id))
+}
+
+func (s *TripService) SearchTrips(query string, userID uint) ([]models.Trip, error) {
+    return s.TripRepo.SearchTrips(query, userID)
+}
