@@ -55,7 +55,6 @@ func (s *MediaService) GetMediaByTripID(tripID int64, userID int64) ([]models.Me
 	return response, nil
 }
 
-
 func (s *MediaService) GetMediaDataByTripID(tripID int64, userID int64) ([]models.Media, error) {
 	// Get media list from repository
 	mediaList, err := s.MediaRepo.GetMediaByTripID(tripID)
@@ -143,7 +142,6 @@ func (s *MediaService) UpdateMediaMetadata(mediaID int64, i int64, latitude floa
 }
 
 func (s *MediaService) UploadMedia(userID int64, file multipart.File, header *multipart.FileHeader, visibility models.VisibilityEnum) (string, error) {
-	fmt.Printf("Starting upload for user %d with file %s\n", userID, header.Filename)
 	defer file.Close()
 
 	// Use the MinioService to upload the file
@@ -248,10 +246,8 @@ func (s *MediaService) ExtractMetadata(file multipart.File, header *multipart.Fi
 		metadata.Type = "unknown"
 	}
 
-	fmt.Printf("Processing file: %s (type: %s)\n", header.Filename, metadata.Type)
 
 	if metadata.Type == "photo" {
-		fmt.Println("Attempting to extract EXIF data...")
 		exifData, err := exif.Decode(file)
 		if err != nil {
 			fmt.Printf("Failed to decode EXIF: %v\n", err)
@@ -260,28 +256,24 @@ func (s *MediaService) ExtractMetadata(file multipart.File, header *multipart.Fi
 			if lat, long, err := exifData.LatLong(); err == nil {
 				metadata.Latitude = lat
 				metadata.Longitude = long
-				fmt.Printf("Found coordinates: lat=%f, long=%f\n", lat, long)
 
 				// Get altitude if available
 				if altTag, err := exifData.Get(exif.GPSAltitude); err == nil {
 					ratValue, err := altTag.Rat(0)
 					if err == nil {
 						metadata.Altitude, _ = ratValue.Float64()
-						fmt.Printf("Found altitude: %f\n", metadata.Altitude)
 					}
 				}
 
 				// Get location info if coordinates are available
 				if locationInfo, err := s.GetLocationInfo(lat, long); err == nil {
 					locationFound, err := s.GetLocationByCountryAndCity(locationInfo)
-					fmt.Printf("Location found: %s, %s\n", locationInfo.City, locationInfo.Country)
 
 					if err == nil {
 						metadata.LocationID = locationFound.LocationID
 						metadata.City = locationFound.City
 						metadata.Country = locationFound.Country
 					} else {
-						fmt.Printf("Location not found in database\n")
 						locationCreated, err := s.setLocationInfo(locationInfo)
 						if err == nil {
 							metadata.LocationID = locationCreated.LocationID
@@ -290,7 +282,6 @@ func (s *MediaService) ExtractMetadata(file multipart.File, header *multipart.Fi
 						}
 					}
 
-					fmt.Printf("Location found: %s, %s\n", metadata.City, metadata.Country)
 				} else {
 					fmt.Printf("Failed to get location info: %v\n", err)
 				}
@@ -301,7 +292,6 @@ func (s *MediaService) ExtractMetadata(file multipart.File, header *multipart.Fi
 			// Get capture date
 			if dateTag, err := exifData.DateTime(); err == nil {
 				metadata.CaptureDate = dateTag
-				fmt.Printf("Found capture date: %v\n", metadata.CaptureDate)
 			} else {
 				fmt.Printf("No capture date found: %v\n", err)
 			}
@@ -310,12 +300,6 @@ func (s *MediaService) ExtractMetadata(file multipart.File, header *multipart.Fi
 		// Reset file pointer for future operations
 		file.Seek(0, 0)
 	}
-
-	fmt.Println("Final metadata summary:")
-	fmt.Printf("- Type: %s\n", metadata.Type)
-	fmt.Printf("- Capture Date: %v\n", metadata.CaptureDate)
-	fmt.Printf("- Coordinates: lat=%f, long=%f, alt=%f\n", metadata.Latitude, metadata.Longitude, metadata.Altitude)
-	fmt.Printf("- Location: %s, %s\n", metadata.City, metadata.Country)
 
 	// Check if location data is missing or has default values
 	if (metadata.Latitude == 0 && metadata.Longitude == 0) ||

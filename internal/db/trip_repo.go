@@ -102,6 +102,18 @@ func (repo *TripsRepository) GetTripsByUserID(userID uint) ([]models.Trip, error
     return trips, nil
 }
 
+func (repo *TripsRepository) GetPublicTripsForEveryone(userID uint) ([]models.Trip, error) {
+    var trips []models.Trip
+    result := repo.DB.Table("trips.trips").
+        Where("user_id != ? AND visibility = ?", userID, "PUBLIC").
+        Find(&trips)
+    
+    if result.Error != nil {
+        return nil, result.Error
+    }
+    return trips, nil
+}
+
 func (repo *TripsRepository) GetPublicTripsForUser(userID uint) ([]models.Trip, error) {
     var trips []models.Trip
     result := repo.DB.Table("trips.trips").
@@ -117,7 +129,7 @@ func (repo *TripsRepository) GetPublicTripsForUser(userID uint) ([]models.Trip, 
 func (repo *TripsRepository) GetPublicAndFriendsTripsForUser(userID uint) ([]models.Trip, error) {
     var trips []models.Trip
     result := repo.DB.Table("trips.trips").
-        Where("user_id = ? AND (visibility = ? OR visibility = ?)", userID, "PUBLIC", "FRIENDS").
+        Where("user_id != ? AND (visibility = ? OR visibility = ?)", userID, "PUBLIC", "FRIENDS").
         Find(&trips)
     
     if result.Error != nil {

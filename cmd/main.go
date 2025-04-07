@@ -86,7 +86,7 @@ func main() {
 		api.POST("/", tripHandler.CreateTrip)
 		api.GET("/", tripHandler.GetAllTrips)
 		api.POST("/search", tripHandler.SearchTrips)
-		api.GET("/public", tripHandler.GetAllPublicTrips)
+		api.GET("/public", tripHandler.GetPublicTrips)
 		api.GET("/myTrips", tripHandler.GetMyTrips)
 		api.GET("/following", tripHandler.GetFollowedUsersTrips) 
 		api.GET("/user/:id", tripHandler.GetTripsByUserID) 
