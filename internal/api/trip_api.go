@@ -429,30 +429,7 @@ func (c *TripController) GetFollowedUsersTrips(ctx *gin.Context) {
 				fmt.Printf("Skipping trip %d as it has no media\n", trip.TripID)
 				continue
 			}
-
-			mediaData, err := c.MediaService.GetMediaDataByTripID(int64(trip.TripID), int64(followedID))
-			if err != nil {
-				fmt.Printf("Error: Failed to retrieve media for trip %d - %v\n", trip.TripID, err)
-				continue
-			}
-
-			// Skip if mediaData is empty
-			if len(mediaData) == 0 {
-				fmt.Printf("Skipping trip %d as it has no media data\n", trip.TripID)
-				continue
-			}
-			/*
-			var country string
-			for _, m := range mediaData {
-				if m.GpsLatitude != 0 && m.GpsLongitude != 0 {
-					locationInfo, err := c.MediaService.GetLocationInfo(m.GpsLatitude, m.GpsLongitude)
-					if err == nil && locationInfo.Country != "" {
-						country = locationInfo.Country
-						break
-					}
-				}
-			}
-			*/
+			
 			country := "Unknown"
 			tripWithMedia := gin.H{
 				"trip":    trip,
