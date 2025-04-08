@@ -132,15 +132,28 @@ func (c *TripController) DeleteTrip(ctx *gin.Context) {
 	}
 }
 
-func (c *TripController) GetTripByID(ctx *gin.Context) {
+func (c *TripController) GetTripByID(ctx *gin.Context) {	
 	tripID := ctx.Param("id")
+	
 	trip, err := c.TripService.GetTripByID(tripID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "trip not found"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, trip)
+	media, err := c.MediaService.GetMediaByTripID(int64(trip.TripID), int64(trip.UserID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve media"})
+		return
+	}
+
+
+	tripWithMedia := gin.H{
+		"trip":  trip,
+		"media": media,
+	}
+
+	ctx.JSON(http.StatusOK, tripWithMedia)
 }
 
 func (c *TripController) SearchTrips(ctx *gin.Context) {

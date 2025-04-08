@@ -43,16 +43,16 @@ func (s *TripService) DeleteTrip(tripID string) error {
 	return nil
 }
 
-func (s *TripService) GetTripByID(tripID string) (any, error) {
+func (s *TripService) GetTripByID(tripID string) (models.Trip, error) {
 	// Convert string ID to integer
 	id, err := strconv.Atoi(tripID)
 	if err != nil {
-		return nil, err
+		return models.Trip{}, err
 	}
 
 	trip, err := s.TripRepo.GetTripByID(id)
 	if err != nil {
-		return nil, err
+		return models.Trip{}, err
 	}
 
 	return trip, nil
