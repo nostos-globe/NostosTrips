@@ -5,6 +5,7 @@ import (
 	"main/internal/models"
 	"main/internal/service"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -132,9 +133,9 @@ func (c *TripController) DeleteTrip(ctx *gin.Context) {
 	}
 }
 
-func (c *TripController) GetTripByID(ctx *gin.Context) {	
+func (c *TripController) GetTripByID(ctx *gin.Context) {
 	tripID := ctx.Param("id")
-	
+
 	trip, err := c.TripService.GetTripByID(tripID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "trip not found"})
@@ -146,7 +147,6 @@ func (c *TripController) GetTripByID(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve media"})
 		return
 	}
-
 
 	tripWithMedia := gin.H{
 		"trip":  trip,
@@ -179,7 +179,7 @@ func (c *TripController) SearchTrips(ctx *gin.Context) {
 	}
 
 	trips, err := c.TripService.SearchTrips(searchRequest.Query, TokenResponse)
-	if err!= nil {
+	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -216,6 +216,7 @@ func (c *TripController) GetAllTrips(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, trips)
 }
+
 /*
 func (c *TripController) GetAllPublicTrips(ctx *gin.Context) {
 	trips, err := c.TripService.GetAllPublicTrips()
@@ -250,15 +251,15 @@ func (c *TripController) GetAllPublicTrips(ctx *gin.Context) {
 
 func (c *TripController) GetPublicTrips(ctx *gin.Context) {
 	tokenCookie, err := ctx.Cookie("auth_token")
-	if err!= nil {
+	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
 		return
 	}
 
 	TokenResponse, err := c.AuthClient.GetUserID(tokenCookie)
-	if err!= nil || TokenResponse == 0 {
+	if err != nil || TokenResponse == 0 {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to find this user"})
-		return	
+		return
 	}
 
 	trips, err := c.TripService.GetPublicTripsForEveryone(TokenResponse)
@@ -292,7 +293,7 @@ func (c *TripController) GetPublicTrips(ctx *gin.Context) {
 
 func (c *TripController) GetTripsByUserID(ctx *gin.Context) {
 	userID := ctx.Param("id")
-	
+
 	// Get user's trips with their associated media
 	trips, err := c.TripService.GetTripsByUserID(userID)
 	if err != nil {
@@ -375,6 +376,54 @@ func (c *TripController) GetMyTrips(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, tripsWithMedia)
 }
 
+func (c *TripController) GetLocationsByTripID(ctx *gin.Context) {
+	tripID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+
+	// Get user ID from authenticated context
+	tokenCookie, err := ctx.Cookie("auth_token")
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
+		return
+	}
+
+	TokenResponse, err := c.AuthClient.GetUserID(tokenCookie)
+	if err != nil || TokenResponse == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to find this user"})
+		return
+	}
+
+	// Check if the trip belongs to the user
+	trip, err := c.TripService.GetTripByID(strconv.FormatUint(uint64(tripID), 10))
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "trip not found"})
+		return
+	}
+
+	media, err := c.MediaService.GetMediaByTripID(int64(trip.TripID), int64(trip.UserID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve media"})
+		return
+	}
+
+	var locations []models.Location
+	for _, m := range media {
+		location, err := c.MediaService.GetLocationByMediaID(m.MediaID, int64(trip.UserID))
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve locations"})
+			return
+		}
+
+		locations = append(locations, *location) // Fixed: append location to locations slice
+	}
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve locations"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, locations)
+}
+
 func (c *TripController) GetFollowedUsersTrips(ctx *gin.Context) {
 
 	tokenCookie, err := ctx.Cookie("auth_token")
@@ -399,14 +448,12 @@ func (c *TripController) GetFollowedUsersTrips(ctx *gin.Context) {
 		return
 	}
 
-
 	followers, err := c.ProfileClient.GetFollowers(tokenCookie, userID)
 	if err != nil {
 		fmt.Printf("Error: Failed to get followers - %v\n", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve followers"})
 		return
 	}
-
 
 	// Create a map of mutual follows (friends)
 	mutualFollows := make(map[int]bool)
@@ -429,7 +476,6 @@ func (c *TripController) GetFollowedUsersTrips(ctx *gin.Context) {
 			continue
 		}
 
-
 		for _, trip := range trips {
 			media, err := c.MediaService.GetMediaByTripID(int64(trip.TripID), int64(userID))
 			if err != nil {
@@ -442,7 +488,7 @@ func (c *TripController) GetFollowedUsersTrips(ctx *gin.Context) {
 				fmt.Printf("Skipping trip %d as it has no media\n", trip.TripID)
 				continue
 			}
-			
+
 			country := "Unknown"
 			tripWithMedia := gin.H{
 				"trip":    trip,

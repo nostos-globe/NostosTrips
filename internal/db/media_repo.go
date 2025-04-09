@@ -27,7 +27,6 @@ func (repo *MediaRepository) GetMediaByTripID(tripID int64) ([]*models.Media, er
 	return media, nil
 }
 
-
 func (repo *MediaRepository) SaveMedia(media *models.Media) error {
 	result := repo.DB.Table("media.media").Create(media)
 	if result.Error != nil {
@@ -82,6 +81,18 @@ func (r *MediaRepository) GetLocationByCountryAndCity(location *models.Location)
 	}
 
 	return &result, nil
+}
+
+func (r *MediaRepository) GetLocationByMediaID(locationID int64) (*models.Location, error) {
+	var location models.Location
+	result := r.DB.Table("locations.locations").
+		First(&location, locationID)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &location, nil
 }
 
 func (r *MediaRepository) SaveLocationInfo(location *models.Location) error {

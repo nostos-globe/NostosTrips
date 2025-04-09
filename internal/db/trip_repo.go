@@ -1,8 +1,9 @@
 package db
 
 import (
-	"main/internal/models"
 	"fmt"
+	"main/internal/models"
+
 	"gorm.io/gorm"
 )
 
@@ -63,11 +64,11 @@ func (repo *TripsRepository) SearchTrips(query string, userID uint) ([]models.Tr
 	var trips []models.Trip
 	searchQuery := "%" + query + "%"
 	result := repo.DB.Table("trips.trips").
-	    Where("user_id != ? AND (name ILIKE ? OR description ILIKE ?)", 
-	        userID, searchQuery, searchQuery).
-	    Find(&trips)
+		Where("user_id != ? AND (name ILIKE ? OR description ILIKE ?)",
+			userID, searchQuery, searchQuery).
+		Find(&trips)
 	if result.Error != nil {
-	    return nil, result.Error
+		return nil, result.Error
 	}
 	fmt.Printf("Search results from DB: %+v\n", trips)
 	return trips, nil
@@ -84,56 +85,56 @@ func (repo *TripsRepository) GetTripByID(tripID int) (models.Trip, error) {
 }
 
 func (r *TripsRepository) GetAllPublicTrips() ([]models.Trip, error) {
-    var trips []models.Trip
-    result := r.DB.Table("trips.trips").Where("visibility = ?", "PUBLIC").Find(&trips)
-    if result.Error != nil {
-        return nil, result.Error
-    }
-    return trips, nil
+	var trips []models.Trip
+	result := r.DB.Table("trips.trips").Where("visibility = ?", "PUBLIC").Find(&trips)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return trips, nil
 }
 
 func (repo *TripsRepository) GetTripsByUserID(userID uint) ([]models.Trip, error) {
-    var trips []models.Trip
-    result := repo.DB.Table("trips.trips").Where("user_id =?", userID).Find(&trips)	
+	var trips []models.Trip
+	result := repo.DB.Table("trips.trips").Where("user_id =?", userID).Find(&trips)
 
-    if result.Error!= nil {
-        return nil, result.Error 	
-    }
-    return trips, nil
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return trips, nil
 }
 
 func (repo *TripsRepository) GetPublicTripsForEveryone(userID uint) ([]models.Trip, error) {
-    var trips []models.Trip
-    result := repo.DB.Table("trips.trips").
-        Where("user_id != ? AND visibility = ?", userID, "PUBLIC").
-        Find(&trips)
-    
-    if result.Error != nil {
-        return nil, result.Error
-    }
-    return trips, nil
+	var trips []models.Trip
+	result := repo.DB.Table("trips.trips").
+		Where("user_id != ? AND visibility = ?", userID, "PUBLIC").
+		Find(&trips)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return trips, nil
 }
 
 func (repo *TripsRepository) GetPublicTripsForUser(userID uint) ([]models.Trip, error) {
-    var trips []models.Trip
-    result := repo.DB.Table("trips.trips").
-        Where("user_id = ? AND visibility = ?", userID, "PUBLIC").
-        Find(&trips)
-    
-    if result.Error != nil {
-        return nil, result.Error
-    }
-    return trips, nil
+	var trips []models.Trip
+	result := repo.DB.Table("trips.trips").
+		Where("user_id = ? AND visibility = ?", userID, "PUBLIC").
+		Find(&trips)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return trips, nil
 }
 
 func (repo *TripsRepository) GetPublicAndFriendsTripsForUser(userID uint) ([]models.Trip, error) {
-    var trips []models.Trip
-    result := repo.DB.Table("trips.trips").
-        Where("user_id != ? AND (visibility = ? OR visibility = ?)", userID, "PUBLIC", "FRIENDS").
-        Find(&trips)
-    
-    if result.Error != nil {
-        return nil, result.Error
-    }
-    return trips, nil
+	var trips []models.Trip
+	result := repo.DB.Table("trips.trips").
+		Where("user_id != ? AND (visibility = ? OR visibility = ?)", userID, "PUBLIC", "FRIENDS").
+		Find(&trips)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return trips, nil
 }

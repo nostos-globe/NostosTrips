@@ -66,11 +66,11 @@ func main() {
 
 	// Initialize controllers
 	tripHandler := &controller.TripController{
-        TripService:   tripService,
-        MediaService:  mediaService,
-        AuthClient:    authClient,
-        ProfileClient: profileClient,
-    }
+		TripService:   tripService,
+		MediaService:  mediaService,
+		AuthClient:    authClient,
+		ProfileClient: profileClient,
+	}
 	mediaHandler := &controller.MediaController{
 		MediaService:     mediaService,
 		AuthClient:       authClient,
@@ -88,9 +88,10 @@ func main() {
 		api.POST("/search", tripHandler.SearchTrips)
 		api.GET("/public", tripHandler.GetPublicTrips)
 		api.GET("/myTrips", tripHandler.GetMyTrips)
-		api.GET("/following", tripHandler.GetFollowedUsersTrips) 
-		api.GET("/user/:id", tripHandler.GetTripsByUserID) 
+		api.GET("/following", tripHandler.GetFollowedUsersTrips)
+		api.GET("/user/:id", tripHandler.GetTripsByUserID)
 		api.GET("/:id", tripHandler.GetTripByID)
+		api.GET("/:id/locations", tripHandler.GetLocationsByTripID)
 		api.PUT("/update", tripHandler.UpdateTrip)
 		api.DELETE("/delete/:id", tripHandler.DeleteTrip)
 	}
@@ -105,6 +106,7 @@ func main() {
 		//mediaApi.GET("/:media_id/metadata", mediaHandler.GetMediaMetadata)
 		mediaApi.GET("/:media_id/visibility", mediaHandler.GetMediaVisibility)
 		mediaApi.PUT("/:media_id/visibility", mediaHandler.ChangeMediaVisibility)
+		mediaApi.GET("/:media_id/location", mediaHandler.GetLocationByMediaID)
 		mediaApi.GET("/trip/:trip_id", mediaHandler.GetMediaByTripID)
 	}
 

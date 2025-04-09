@@ -72,12 +72,11 @@ func (s *MediaService) GetMediaDataByTripID(tripID int64, userID int64) ([]model
 		if media.Visibility == "FRIENDS" && !s.MediaRepo.AreFriends(userID, media.UserID) {
 			continue
 		}
-		filteredMedia = append(filteredMedia, *media)  // Dereference the pointer
+		filteredMedia = append(filteredMedia, *media) // Dereference the pointer
 	}
 
 	return filteredMedia, nil
 }
-
 
 func (s *MediaService) ChangeMediaVisibility(mediaID int64, i int64, visibility models.VisibilityEnum) error {
 	media, err := s.MediaRepo.GetMediaByID(mediaID)
@@ -97,10 +96,10 @@ func (s *MediaService) ChangeMediaVisibility(mediaID int64, i int64, visibility 
 func (s *MediaService) GetMediaVisibility(mediaID int64, userID uint) (string, error) {
 	media, err := s.MediaRepo.GetMediaByID(mediaID)
 	if err != nil {
-		return "", err  
+		return "", err
 	}
 
-	return string(media.Visibility), nil 
+	return string(media.Visibility), nil
 }
 
 func (s *MediaService) UpdateMediaMetadata(mediaID int64, i int64, latitude float64, longitude float64, altitude float64) error {
@@ -246,7 +245,6 @@ func (s *MediaService) ExtractMetadata(file multipart.File, header *multipart.Fi
 		metadata.Type = "unknown"
 	}
 
-
 	if metadata.Type == "photo" {
 		exifData, err := exif.Decode(file)
 		if err != nil {
@@ -315,39 +313,39 @@ func (s *MediaService) ExtractMetadata(file multipart.File, header *multipart.Fi
 
 // Change from getLocationInfo to GetLocationInfo
 func (s *MediaService) GetLocationInfo(lat, long float64) (*models.Location, error) {
-    // Using OpenStreetMap Nominatim API (free, no API key required)
-    url := fmt.Sprintf("https://nominatim.openstreetmap.org/reverse?format=json&lat=%f&lon=%f", lat, long)
+	// Using OpenStreetMap Nominatim API (free, no API key required)
+	url := fmt.Sprintf("https://nominatim.openstreetmap.org/reverse?format=json&lat=%f&lon=%f", lat, long)
 
-    client := &http.Client{}
-    req, err := http.NewRequest("GET", url, nil)
-    if err != nil {
-        return nil, err
-    }
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
 
-    req.Header.Set("User-Agent", "NostosTrips/1.0")
+	req.Header.Set("User-Agent", "NostosTrips/1.0")
 
-    resp, err := client.Do(req)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
 
-    var result struct {
-        Address struct {
-            City    string `json:"city"`
-            Country string `json:"country"`
-        } `json:"address"`
-    }
+	var result struct {
+		Address struct {
+			City    string `json:"city"`
+			Country string `json:"country"`
+		} `json:"address"`
+	}
 
-    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-        return nil, err
-    }
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
 
-    return &models.Location{
-        Name:    result.Address.City + ", " + result.Address.Country,
-        City:    result.Address.City,
-        Country: result.Address.Country,
-    }, nil
+	return &models.Location{
+		Name:    result.Address.City + ", " + result.Address.Country,
+		City:    result.Address.City,
+		Country: result.Address.Country,
+	}, nil
 }
 
 func (s *MediaService) GetLocationByCountryAndCity(location *models.Location) (*models.Location, error) {
@@ -361,6 +359,24 @@ func (s *MediaService) setLocationInfo(location *models.Location) (*models.Locat
 
 	if err := s.MediaRepo.SaveLocationInfo(location); err != nil {
 		return nil, fmt.Errorf("failed to save location info: %w", err)
+	}
+
+	return location, nil
+}
+
+func (s *MediaService) GetLocationByMediaID(mediaID int64, userID int64) (*models.Location, error) {
+	media, err := s.MediaRepo.GetMediaByID(mediaID)
+	if err != nil {
+		return nil, err
+	}
+
+	if media.UserID != userID {
+		return nil, fmt.Errorf("not authorized to access this media")
+	}
+
+	location, err := s.MediaRepo.GetLocationByMediaID(media.LocationID)
+	if err != nil {
+		return nil, err
 	}
 
 	return location, nil
