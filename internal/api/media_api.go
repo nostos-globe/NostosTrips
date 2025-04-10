@@ -313,7 +313,7 @@ func (c *MediaController) GetLocationByMediaID(ctx *gin.Context) {
 		return
 	}
 
-	location, err := c.MediaService.GetLocationByMediaID(mediaID, int64(userID))
+	location, err := c.MediaService.GetLocationByMediaID(mediaID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get location"})
 		return

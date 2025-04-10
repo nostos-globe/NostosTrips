@@ -47,8 +47,10 @@ func (s *MediaService) GetMediaByTripID(tripID int64, userID int64) ([]models.Me
 		}
 
 		response = append(response, models.MediaByTrip{
-			MediaID: media.MediaID,
-			URL:     url,
+			MediaID:   media.MediaID,
+			URL:       url,
+			Longitude: uint(media.GpsLongitude),
+			Latitude:  uint(media.GpsLatitude),
 		})
 	}
 
@@ -364,14 +366,10 @@ func (s *MediaService) setLocationInfo(location *models.Location) (*models.Locat
 	return location, nil
 }
 
-func (s *MediaService) GetLocationByMediaID(mediaID int64, userID int64) (*models.Location, error) {
+func (s *MediaService) GetLocationByMediaID(mediaID int64) (*models.Location, error) {
 	media, err := s.MediaRepo.GetMediaByID(mediaID)
 	if err != nil {
 		return nil, err
-	}
-
-	if media.UserID != userID {
-		return nil, fmt.Errorf("not authorized to access this media")
 	}
 
 	location, err := s.MediaRepo.GetLocationByMediaID(media.LocationID)
