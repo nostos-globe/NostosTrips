@@ -48,6 +48,7 @@ func main() {
 	// Initialize repositories
 	tripRepo := &dbRepo.TripsRepository{DB: database}
 	mediaRepo := &dbRepo.MediaRepository{DB: database}
+	albumsTripsRepo := &dbRepo.AlbumsTripsRepository{DB: database}
 
 	// Initialize authClient
 	authClient := &service.AuthClient{BaseURL: cfg.AuthServiceUrl}
@@ -57,6 +58,7 @@ func main() {
 	minioService := service.NewMinioService()
 
 	// Initialize services
+	albumsTripsService := &service.AlbumsTripsService{AlbumsTripsRepo: albumsTripsRepo}
 	tripService := &service.TripService{TripRepo: tripRepo}
 	mediaService := &service.MediaService{
 		MediaRepo:    mediaRepo,
@@ -66,10 +68,11 @@ func main() {
 
 	// Initialize controllers
 	tripHandler := &controller.TripController{
-		TripService:   tripService,
-		MediaService:  mediaService,
-		AuthClient:    authClient,
-		ProfileClient: profileClient,
+		TripService:      tripService,
+		MediaService:     mediaService,
+		AuthClient:       authClient,
+		ProfileClient:    profileClient,
+		AlbumTripService: albumsTripsService,
 	}
 	mediaHandler := &controller.MediaController{
 		MediaService:     mediaService,

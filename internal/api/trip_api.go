@@ -15,6 +15,7 @@ type TripController struct {
 	MediaService  *service.MediaService
 	AuthClient    *service.AuthClient
 	ProfileClient *service.ProfileClient
+	AlbumTripService *service.AlbumsTripsService
 }
 func (c *TripController) CreateTrip(ctx *gin.Context) {
 	fmt.Printf("Starting CreateTrip request\n")
@@ -25,6 +26,7 @@ func (c *TripController) CreateTrip(ctx *gin.Context) {
 		Visibility  string `json:"visibility"`
 		StartDate   string `json:"start_date"`
 		EndDate     string `json:"end_date"`
+		AlbumID     string   `json:"album_id"` 
 	}
 
 	// Get user ID from authenticated context
@@ -41,19 +43,15 @@ func (c *TripController) CreateTrip(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to find this user"})
 		return
 	}
-	fmt.Printf("Authenticated user ID: %d\n", TokenResponse)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		fmt.Printf("Error: Failed to bind JSON request - %v\n", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	fmt.Printf("Request data: Name=%s, Description=%s, Visibility=%s\n", 
-		req.Name, req.Description, req.Visibility)
 
 	tripMapper := &models.TripMapper{}
-	trip := tripMapper.ToTrip(req, TokenResponse)
-	fmt.Printf("Mapped trip data for creation\n")
+	trip := tripMapper.ToTripRequest(req, TokenResponse)
 
 	createdTrip, err := c.TripService.CreateTrip(trip)
 	if err != nil {
@@ -62,10 +60,15 @@ func (c *TripController) CreateTrip(ctx *gin.Context) {
 		return
 	}
 	trip = createdTrip.(models.Trip)
-	fmt.Printf("Successfully created trip with ID: %d\n", trip.TripID)
+
+	if req.AlbumID != "0" {
+		err = c.AlbumTripService.CreateAlbumTrip(req.AlbumID, uint(trip.TripID))
+		if err != nil {
+			fmt.Printf("Error: Failed to create album-trip association - %v\n", err)
+		}
+	}
 
 	ctx.JSON(http.StatusCreated, trip)
-	fmt.Printf("Completed CreateTrip request\n")
 }
 
 func (c *TripController) UpdateTrip(ctx *gin.Context) {

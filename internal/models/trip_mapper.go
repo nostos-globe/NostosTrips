@@ -36,3 +36,14 @@ func (m *TripMapper) ToTripUpdate(req struct {
 		UserID:      tokenResponse.(uint),
 	}
 }
+
+func (m *TripMapper) ToTripRequest(req TripRequest, userID uint) Trip {
+	return Trip{
+		UserID:      userID,
+		Name:        req.Name,
+		Description: req.Description,
+		Visibility:  req.Visibility,
+		StartDate:   req.StartDate,
+		EndDate:     req.EndDate,
+	}
+}
