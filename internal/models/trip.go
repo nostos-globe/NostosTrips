@@ -16,7 +16,7 @@ type TripRequest struct {
 	Visibility  string `json:"visibility"`
 	StartDate   string `json:"start_date"`
 	EndDate     string `json:"end_date"`
-	AlbumID     string `json:"album_id"`
+	AlbumID     uint `json:"album_id"`
 }
 
 
