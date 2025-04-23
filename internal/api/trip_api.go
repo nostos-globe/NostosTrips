@@ -16,8 +16,9 @@ type TripController struct {
 	AuthClient    *service.AuthClient
 	ProfileClient *service.ProfileClient
 }
-
 func (c *TripController) CreateTrip(ctx *gin.Context) {
+	fmt.Printf("Starting CreateTrip request\n")
+	
 	var req struct {
 		Name        string `json:"name"`
 		Description string `json:"description"`
@@ -29,32 +30,42 @@ func (c *TripController) CreateTrip(ctx *gin.Context) {
 	// Get user ID from authenticated context
 	tokenCookie, err := ctx.Cookie("auth_token")
 	if err != nil {
+		fmt.Printf("Error: No auth token found - %v\n", err)
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
 		return
 	}
 
 	TokenResponse, err := c.AuthClient.GetUserID(tokenCookie)
 	if err != nil || TokenResponse == 0 {
+		fmt.Printf("Error: Failed to get user ID - %v\n", err)
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to find this user"})
 		return
 	}
+	fmt.Printf("Authenticated user ID: %d\n", TokenResponse)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		fmt.Printf("Error: Failed to bind JSON request - %v\n", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	fmt.Printf("Request data: Name=%s, Description=%s, Visibility=%s\n", 
+		req.Name, req.Description, req.Visibility)
 
 	tripMapper := &models.TripMapper{}
 	trip := tripMapper.ToTrip(req, TokenResponse)
+	fmt.Printf("Mapped trip data for creation\n")
 
 	createdTrip, err := c.TripService.CreateTrip(trip)
 	if err != nil {
+		fmt.Printf("Error: Failed to create trip - %v\n", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create trip"})
 		return
 	}
 	trip = createdTrip.(models.Trip)
+	fmt.Printf("Successfully created trip with ID: %d\n", trip.TripID)
 
 	ctx.JSON(http.StatusCreated, trip)
+	fmt.Printf("Completed CreateTrip request\n")
 }
 
 func (c *TripController) UpdateTrip(ctx *gin.Context) {

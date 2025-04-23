@@ -4,6 +4,7 @@ import (
 	"main/internal/db"
 	"main/internal/models"
 	"strconv"
+	"fmt"
 )
 
 type TripService struct {
@@ -11,11 +12,15 @@ type TripService struct {
 }
 
 func (s *TripService) CreateTrip(trip models.Trip) (any, error) {
+	fmt.Printf("Creating new trip:", trip)
+	
 	result, err := s.TripRepo.CreateTrip(trip)
 	if err != nil {
+		fmt.Printf("Error creating trip:", err)
 		return nil, err
 	}
 
+	fmt.Printf("Successfully created trip. Result:", result)
 	return result, nil
 }
 
