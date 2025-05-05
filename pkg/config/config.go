@@ -25,7 +25,7 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		DBHost:            os.Getenv("DB_HOST"),
+		DBHost:            "localhost",
 		DBUser:            os.Getenv("DB_USER"),
 		DBPassword:        os.Getenv("DB_PASSWORD"),
 		DBName:            os.Getenv("DB_NAME"),

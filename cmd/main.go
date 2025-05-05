@@ -73,6 +73,7 @@ func main() {
 		AuthClient:       authClient,
 		ProfileClient:    profileClient,
 		AlbumTripService: albumsTripsService,
+		LikesClient:      &service.LikesClient{BaseURL: "https://actions.nostos-globe.me"},  // Add this line
 	}
 	mediaHandler := &controller.MediaController{
 		MediaService:     mediaService,
@@ -93,6 +94,7 @@ func main() {
 		api.GET("/myTrips", tripHandler.GetMyTrips)
 		api.GET("/following", tripHandler.GetFollowedUsersTrips)
 		api.GET("/user/:id", tripHandler.GetTripsByUserID)
+		api.GET("/myLikedTrips", tripHandler.GetMyLikedTrips)
 		api.GET("/:id", tripHandler.GetTripByID)
 		api.GET("/:id/locations", tripHandler.GetLocationsByTripID)
 		api.PUT("/update", tripHandler.UpdateTrip)

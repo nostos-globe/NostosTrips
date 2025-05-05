@@ -11,11 +11,12 @@ import (
 )
 
 type TripController struct {
-	TripService   *service.TripService
-	MediaService  *service.MediaService
-	AuthClient    *service.AuthClient
-	ProfileClient *service.ProfileClient
+	TripService      *service.TripService
+	MediaService     *service.MediaService
+	AuthClient       *service.AuthClient
+	ProfileClient    *service.ProfileClient
 	AlbumTripService *service.AlbumsTripsService
+	LikesClient      *service.LikesClient  // Add this line
 }
 func (c *TripController) CreateTrip(ctx *gin.Context) {
 	fmt.Printf("Starting CreateTrip request\n")
@@ -533,4 +534,49 @@ func (c *TripController) GetFollowedUsersTrips(ctx *gin.Context) {
 
 	fmt.Printf("Successfully completed GetFollowedUsersTrips request. Returning %d trips\n", len(allTripsWithMedia))
 	ctx.JSON(http.StatusOK, allTripsWithMedia)
+}
+
+func (c *TripController) GetMyLikedTrips(ctx *gin.Context) {
+	fmt.Printf("Starting GetMyLikedTrips request\n")
+
+	// Get auth token
+	tokenCookie, err := ctx.Cookie("auth_token")
+	if err != nil {
+		fmt.Printf("Error: No auth token found - %v\n", err)
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
+		return
+	}
+
+	// Get liked trip IDs
+	likedTripIDs, err := c.LikesClient.GetMyLikes(tokenCookie)
+	if err != nil {
+		fmt.Printf("Error: Failed to get liked trips - %v\n", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve liked trips"})
+		return
+	}
+
+	var tripsWithMedia []gin.H
+	for _, tripID := range likedTripIDs {
+		// Get trip details
+		trip, err := c.TripService.GetTripByID(fmt.Sprintf("%d", tripID))
+		if err != nil {
+			fmt.Printf("Error: Failed to get trip %d - %v\n", tripID, err)
+			continue
+		}
+
+		// Get media for trip
+		media, err := c.MediaService.GetMediaByTripID(int64(trip.TripID), int64(trip.UserID))
+		if err != nil {
+			fmt.Printf("Error: Failed to get media for trip %d - %v\n", tripID, err)
+			continue
+		}
+
+		tripWithMedia := gin.H{
+			"trip":  trip,
+			"media": media,
+		}
+		tripsWithMedia = append(tripsWithMedia, tripWithMedia)
+	}
+
+	ctx.JSON(http.StatusOK, tripsWithMedia)
 }
