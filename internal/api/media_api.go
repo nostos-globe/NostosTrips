@@ -18,111 +18,130 @@ type MediaController struct {
 }
 
 func (c *MediaController) UploadMedia(ctx *gin.Context) {
-	tripID, err := strconv.ParseInt(ctx.Param("trip_id"), 10, 64)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid trip ID"})
-		return
-	}
+    fmt.Printf("Starting UploadMedia request\n")
+    
+    tripID, err := strconv.ParseInt(ctx.Param("trip_id"), 10, 64)
+    if err != nil {
+        fmt.Printf("Error: Invalid trip ID - %v\n", err)
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid trip ID"})
+        return
+    }
+    fmt.Printf("Processing upload for trip ID: %d\n", tripID)
 
-	tokenCookie, err := ctx.Cookie("auth_token")
-	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
-		return
-	}
+    tokenCookie, err := ctx.Cookie("auth_token")
+    if err != nil {
+        fmt.Printf("Error: No auth token found - %v\n", err)
+        ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
+        return
+    }
 
-	userID, err := c.AuthClient.GetUserID(tokenCookie)
+    userID, err := c.AuthClient.GetUserID(tokenCookie)
+    if err != nil || userID == 0 {
+        fmt.Printf("Error: Failed to authenticate user - %v\n", err)
+        ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to authenticate user"})
+        return
+    }
+    fmt.Printf("Authenticated user ID: %d\n", userID)
 
-	if err != nil || userID == 0 {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to authenticate user"})
-		return
-	}
+    file, header, err := ctx.Request.FormFile("media")
+    if err != nil {
+        fmt.Printf("Error: No file provided - %v\n", err)
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": "no file provided"})
+        return
+    }
+    defer file.Close()
+    fmt.Printf("Received file: %s, Size: %d\n", header.Filename, header.Size)
 
-	file, header, err := ctx.Request.FormFile("media")
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "no file provided"})
-		return
-	}
-	defer file.Close()
+    visibility := models.VisibilityEnum(ctx.PostForm("visibility"))
+    if visibility == "" {
+        visibility = models.Public
+        fmt.Printf("No visibility specified, defaulting to PUBLIC\n")
+    } else {
+        fmt.Printf("Visibility set to: %s\n", visibility)
+    }
 
-	visibility := models.VisibilityEnum(ctx.PostForm("visibility"))
-	if visibility == "" {
-		visibility = models.Public
-	}
+    // Extract metadata
+    fmt.Printf("Attempting to extract metadata from file\n")
+    metadata, err := c.MediaService.ExtractMetadata(file, header)
+    requiresManualLocation := false
+    if err != nil {
+        if err.Error() == "MANUAL_LOCATION_REQUIRED" {
+            requiresManualLocation = true
+            fmt.Printf("Media requires manual location input\n")
+        } else {
+            fmt.Printf("Warning: Failed to extract metadata: %v\n", err)
+        }
+    } else {
+        fmt.Printf("Successfully extracted metadata\n")
+    }
 
-	// Extract metadata
-	metadata, err := c.MediaService.ExtractMetadata(file, header)
-	requiresManualLocation := false
-	if err != nil {
-		if err.Error() == "MANUAL_LOCATION_REQUIRED" {
-			requiresManualLocation = true
-			fmt.Printf("Media requires manual location input\n")
-		} else {
-			fmt.Printf("Warning: Failed to extract metadata: %v\n", err)
-		}
-	}
+    fmt.Printf("Uploading file to MinIO\n")
+    objectName, err := c.MediaService.UploadMedia(int64(userID), file, header, visibility)
+    if err != nil {
+        fmt.Printf("Error: Failed to upload media to MinIO - %v\n", err)
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload media"})
+        return
+    }
+    fmt.Printf("Successfully uploaded file. Object name: %s\n", objectName)
 
-	objectName, err := c.MediaService.UploadMedia(int64(userID), file, header, visibility)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload media"})
-		return
-	}
+    // Create media record with metadata
+    media := models.Media{
+        TripID: tripID,
+        UserID: int64(userID),
+        LocationID: func() int64 {
+            if metadata.LocationID == 0 {
+                return 0
+            }
+            return metadata.LocationID
+        }(),
+        Type: func() string {
+            if metadata.Type == "" {
+                return ""
+            }
+            return metadata.Type
+        }(),
+        FilePath:     objectName,
+        Visibility:   visibility,
+        UploadDate:   time.Now(),
+        CaptureDate:  metadata.CaptureDate,
+        GpsLatitude:  metadata.Latitude,
+        GpsLongitude: metadata.Longitude,
+        GpsAltitude:  metadata.Altitude,
+    }
 
-	// Create media record with metadata
-	media := models.Media{
-		TripID: tripID,
-		UserID: int64(userID),
-		LocationID: func() int64 {
-			if metadata.LocationID == 0 {
-				return 0
-			}
-			return metadata.LocationID
-		}(),
-		Type: func() string {
-			if metadata.Type == "" {
-				return ""
-			}
-			return metadata.Type
-		}(),
-		FilePath:     objectName,
-		Visibility:   visibility,
-		UploadDate:   time.Now(),
-		CaptureDate:  metadata.CaptureDate,
-		GpsLatitude:  metadata.Latitude,
-		GpsLongitude: metadata.Longitude,
-		GpsAltitude:  metadata.Altitude,
-	}
+    err = c.MediaService.SaveMedia(&media)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save media metadata"})
+        return
+    }
 
-	err = c.MediaService.SaveMedia(&media)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save media metadata"})
-		return
-	}
+    response := gin.H{
+        "message": "media uploaded successfully",
+        "path":    objectName,
+        "mediaID": media.MediaID,
+        "metadata": gin.H{
+            "type":        metadata.Type,
+            "captureDate": metadata.CaptureDate,
+            "location": gin.H{
+                "latitude":  metadata.Latitude,
+                "longitude": metadata.Longitude,
+                "altitude":  metadata.Altitude,
+                "city":      metadata.City,
+                "country":   metadata.Country,
+            },
+        },
+    }
 
-	response := gin.H{
-		"message": "media uploaded successfully",
-		"path":    objectName,
-		"mediaID": media.MediaID,
-		"metadata": gin.H{
-			"type":        metadata.Type,
-			"captureDate": metadata.CaptureDate,
-			"location": gin.H{
-				"latitude":  metadata.Latitude,
-				"longitude": metadata.Longitude,
-				"altitude":  metadata.Altitude,
-				"city":      metadata.City,
-				"country":   metadata.Country,
-			},
-		},
-	}
+    // Add flag for manual location if needed
+    if requiresManualLocation {
+        fmt.Printf("Returning response with manual location flag\n")
+        response["requiresManualLocation"] = true
+        ctx.JSON(http.StatusAccepted, response)
+        return
+    }
 
-	// Add flag for manual location if needed
-	if requiresManualLocation {
-		response["requiresManualLocation"] = true
-		ctx.JSON(http.StatusAccepted, response) // Status 202 Accepted
-		return
-	}
-
-	ctx.JSON(http.StatusOK, response)
+    fmt.Printf("Upload completed successfully\n")
+    ctx.JSON(http.StatusOK, response)
 }
 
 func (c *MediaController) GetMediaURL(ctx *gin.Context) {
