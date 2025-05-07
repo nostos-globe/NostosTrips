@@ -8,6 +8,7 @@ func (m *TripMapper) ToTrip(req struct {
 	Visibility  string `json:"visibility"`
 	StartDate   string `json:"start_date"`
 	EndDate     string `json:"end_date"`
+	AlbumID     any    `json:"album_id"`
 }, tokenResponse interface{}) Trip {
 	return Trip{
 		Name:        req.Name,
@@ -37,7 +38,14 @@ func (m *TripMapper) ToTripUpdate(req struct {
 	}
 }
 
-func (m *TripMapper) ToTripRequest(req TripRequest, userID uint) Trip {
+func (m *TripMapper) ToTripRequest(req struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Visibility  string `json:"visibility"`
+	StartDate   string `json:"start_date"`
+	EndDate     string `json:"end_date"`
+	AlbumID     any    `json:"album_id"`
+}, userID uint) Trip {
 	return Trip{
 		UserID:      userID,
 		Name:        req.Name,

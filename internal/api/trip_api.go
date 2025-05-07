@@ -28,7 +28,7 @@ func (c *TripController) CreateTrip(ctx *gin.Context) {
 		Visibility  string `json:"visibility"`
 		StartDate   string `json:"start_date"`
 		EndDate     string `json:"end_date"`
-		AlbumID     string `json:"album_id"`
+		AlbumID     any    `json:"album_id"`
 	}
 
 	// Get user ID from authenticated context
@@ -63,11 +63,25 @@ func (c *TripController) CreateTrip(ctx *gin.Context) {
 	}
 	trip = createdTrip.(models.Trip)
 
-	if req.AlbumID != "0" {
-		err = c.AlbumTripService.CreateAlbumTrip(req.AlbumID, uint(trip.TripID))
-		if err != nil {
-			fmt.Printf("Error: Failed to create album-trip association - %v\n", err)
-		}
+	// Convert AlbumID to string
+	var albumIDStr string
+	switch v := req.AlbumID.(type) {
+	case string:
+	    albumIDStr = v
+	case float64: // JSON numbers decode as float64
+	    albumIDStr = strconv.Itoa(int(v))
+	case nil:
+	    albumIDStr = "0"
+	default:
+	    fmt.Printf("Warning: Unexpected type for album_id: %T\n", v)
+	    albumIDStr = "0"
+	}
+
+	if albumIDStr != "0" {
+	    err = c.AlbumTripService.CreateAlbumTrip(albumIDStr, uint(trip.TripID))
+	    if err != nil {
+	        fmt.Printf("Error: Failed to create album-trip association - %v\n", err)
+	    }
 	}
 
 	ctx.JSON(http.StatusCreated, trip)
