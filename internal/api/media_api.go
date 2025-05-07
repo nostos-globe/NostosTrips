@@ -21,7 +21,7 @@ func (c *MediaController) UploadMedia(ctx *gin.Context) {
     fmt.Println("Starting media upload process")
     
     // Parse multipart form
-    if err := ctx.Request.ParseMultipartForm(10 << 20); err != nil {
+    if err := ctx.Request.ParseMultipartForm(1000 << 20); err != nil {
         fmt.Printf("Failed to parse form: %v\n", err)
         ctx.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse form"})
         return
