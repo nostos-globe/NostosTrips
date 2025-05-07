@@ -16,18 +16,19 @@ type TripController struct {
 	AuthClient       *service.AuthClient
 	ProfileClient    *service.ProfileClient
 	AlbumTripService *service.AlbumsTripsService
-	LikesClient      *service.LikesClient  // Add this line
+	LikesClient      *service.LikesClient // Add this line
 }
+
 func (c *TripController) CreateTrip(ctx *gin.Context) {
 	fmt.Printf("Starting CreateTrip request\n")
-	
+
 	var req struct {
-		Name        string      `json:"name"`
-		Description string      `json:"description"`
-		Visibility  string      `json:"visibility"`
-		StartDate   string      `json:"start_date"`
-		EndDate     string      `json:"end_date"`
-		AlbumID     interface{} `json:"album_id"`  // Changed from string to interface{}
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		Visibility  string `json:"visibility"`
+		StartDate   string `json:"start_date"`
+		EndDate     string `json:"end_date"`
+		AlbumID     uint   `json:"album_id"`
 	}
 
 	// Get user ID from authenticated context
@@ -62,25 +63,11 @@ func (c *TripController) CreateTrip(ctx *gin.Context) {
 	}
 	trip = createdTrip.(models.Trip)
 
-	// Convert albumID to string
-	var albumIDStr string
-	switch v := req.AlbumID.(type) {
-	case string:
-		albumIDStr = v
-	case float64: // JSON numbers are decoded as float64
-		albumIDStr = strconv.FormatInt(int64(v), 10)
-	case nil:
-		albumIDStr = "0"
-	default:
-		fmt.Printf("Warning: Unexpected type for album_id: %T\n", v)
-		albumIDStr = "0"
-	}
-
-	if albumIDStr != "0" {
-        err = c.AlbumTripService.CreateAlbumTrip(albumIDStr, uint(trip.TripID))
-        if err != nil {
-            fmt.Printf("Error: Failed to create album-trip association - %v\n", err)
-        }
+	if req.AlbumID != "0" {
+		err = c.AlbumTripService.CreateAlbumTrip(req.AlbumID, uint(trip.TripID))
+		if err != nil {
+			fmt.Printf("Error: Failed to create album-trip association - %v\n", err)
+		}
 	}
 
 	ctx.JSON(http.StatusCreated, trip)
