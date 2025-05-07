@@ -18,23 +18,13 @@ type MediaController struct {
 }
 
 func (c *MediaController) UploadMedia(ctx *gin.Context) {
-    fmt.Printf("Starting UploadMedia request\n")
+    fmt.Println("Starting media upload process")
     
-    // Log form data
-    form, err := ctx.MultipartForm()
-    if err != nil {
-        fmt.Printf("Error getting form data: %v\n", err)
-    } else {
-        fmt.Printf("Form fields received:\n")
-        for key, values := range form.Value {
-            fmt.Printf("  %s: %v\n", key, values)
-        }
-        fmt.Printf("Files received:\n")
-        for key, files := range form.File {
-            for _, file := range files {
-                fmt.Printf("  %s: %s (size: %d bytes)\n", key, file.Filename, file.Size)
-            }
-        }
+    // Parse multipart form
+    if err := ctx.Request.ParseMultipartForm(10 << 20); err != nil {
+        fmt.Printf("Failed to parse form: %v\n", err)
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse form"})
+        return
     }
 
     tripID, err := strconv.ParseInt(ctx.Param("trip_id"), 10, 64)
@@ -45,21 +35,31 @@ func (c *MediaController) UploadMedia(ctx *gin.Context) {
     }
     fmt.Printf("Processing upload for trip ID: %d\n", tripID)
 
+    // Get user ID from authenticated context
     tokenCookie, err := ctx.Cookie("auth_token")
     if err != nil {
-        fmt.Printf("Error: No auth token found - %v\n", err)
+        fmt.Println("No auth token found in cookies")
         ctx.JSON(http.StatusUnauthorized, gin.H{"error": "no token found"})
         return
     }
 
     userID, err := c.AuthClient.GetUserID(tokenCookie)
     if err != nil || userID == 0 {
-        fmt.Printf("Error: Failed to authenticate user - %v\n", err)
+        fmt.Printf("Failed to get user ID from token: %v\n", err)
         ctx.JSON(http.StatusUnauthorized, gin.H{"error": "failed to authenticate user"})
         return
     }
     fmt.Printf("Authenticated user ID: %d\n", userID)
 
+    // Get form values
+    visibility := models.VisibilityEnum(ctx.Request.FormValue("visibility"))
+    if visibility == "" {
+        visibility = models.Public
+        fmt.Println("No visibility specified, defaulting to PUBLIC")
+    }
+    fmt.Printf("Media visibility set to: %s\n", visibility)
+
+    // Handle file upload
     file, header, err := ctx.Request.FormFile("media")
     if err != nil {
         fmt.Printf("Error: No file provided - %v\n", err)
@@ -67,32 +67,25 @@ func (c *MediaController) UploadMedia(ctx *gin.Context) {
         return
     }
     defer file.Close()
-    fmt.Printf("Received file: %s, Size: %d\n", header.Filename, header.Size)
-
-    visibility := models.VisibilityEnum(ctx.PostForm("visibility"))
-    if visibility == "" {
-        visibility = models.Public
-        fmt.Printf("No visibility specified, defaulting to PUBLIC\n")
-    } else {
-        fmt.Printf("Visibility set to: %s\n", visibility)
-    }
+    fmt.Printf("Processing media file: %s (size: %d bytes)\n", header.Filename, header.Size)
 
     // Extract metadata
-    fmt.Printf("Attempting to extract metadata from file\n")
+    fmt.Println("Attempting to extract metadata from file")
     metadata, err := c.MediaService.ExtractMetadata(file, header)
     requiresManualLocation := false
     if err != nil {
         if err.Error() == "MANUAL_LOCATION_REQUIRED" {
             requiresManualLocation = true
-            fmt.Printf("Media requires manual location input\n")
+            fmt.Println("Media requires manual location input")
         } else {
             fmt.Printf("Warning: Failed to extract metadata: %v\n", err)
         }
     } else {
-        fmt.Printf("Successfully extracted metadata\n")
+        fmt.Println("Successfully extracted metadata")
     }
 
-    fmt.Printf("Uploading file to MinIO\n")
+    // Upload to MinIO
+    fmt.Println("Uploading file to MinIO")
     objectName, err := c.MediaService.UploadMedia(int64(userID), file, header, visibility)
     if err != nil {
         fmt.Printf("Error: Failed to upload media to MinIO - %v\n", err)
@@ -101,22 +94,12 @@ func (c *MediaController) UploadMedia(ctx *gin.Context) {
     }
     fmt.Printf("Successfully uploaded file. Object name: %s\n", objectName)
 
-    // Create media record with metadata
+    // Create media record
     media := models.Media{
-        TripID: tripID,
-        UserID: int64(userID),
-        LocationID: func() int64 {
-            if metadata.LocationID == 0 {
-                return 0
-            }
-            return metadata.LocationID
-        }(),
-        Type: func() string {
-            if metadata.Type == "" {
-                return ""
-            }
-            return metadata.Type
-        }(),
+        TripID:       tripID,
+        UserID:       int64(userID),
+        LocationID:   metadata.LocationID,
+        Type:        metadata.Type,
         FilePath:     objectName,
         Visibility:   visibility,
         UploadDate:   time.Now(),
@@ -126,12 +109,15 @@ func (c *MediaController) UploadMedia(ctx *gin.Context) {
         GpsAltitude:  metadata.Altitude,
     }
 
-    err = c.MediaService.SaveMedia(&media)
-    if err != nil {
+    // Save media metadata
+    fmt.Println("Saving media metadata to database")
+    if err = c.MediaService.SaveMedia(&media); err != nil {
+        fmt.Printf("Failed to save media metadata: %v\n", err)
         ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save media metadata"})
         return
     }
 
+    // Prepare response
     response := gin.H{
         "message": "media uploaded successfully",
         "path":    objectName,
@@ -149,15 +135,14 @@ func (c *MediaController) UploadMedia(ctx *gin.Context) {
         },
     }
 
-    // Add flag for manual location if needed
     if requiresManualLocation {
-        fmt.Printf("Returning response with manual location flag\n")
+        fmt.Println("Returning response with manual location flag")
         response["requiresManualLocation"] = true
         ctx.JSON(http.StatusAccepted, response)
         return
     }
 
-    fmt.Printf("Upload completed successfully\n")
+    fmt.Println("Media upload completed successfully")
     ctx.JSON(http.StatusOK, response)
 }
 
