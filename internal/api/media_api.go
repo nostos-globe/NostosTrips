@@ -20,6 +20,23 @@ type MediaController struct {
 func (c *MediaController) UploadMedia(ctx *gin.Context) {
     fmt.Printf("Starting UploadMedia request\n")
     
+    // Log form data
+    form, err := ctx.MultipartForm()
+    if err != nil {
+        fmt.Printf("Error getting form data: %v\n", err)
+    } else {
+        fmt.Printf("Form fields received:\n")
+        for key, values := range form.Value {
+            fmt.Printf("  %s: %v\n", key, values)
+        }
+        fmt.Printf("Files received:\n")
+        for key, files := range form.File {
+            for _, file := range files {
+                fmt.Printf("  %s: %s (size: %d bytes)\n", key, file.Filename, file.Size)
+            }
+        }
+    }
+
     tripID, err := strconv.ParseInt(ctx.Param("trip_id"), 10, 64)
     if err != nil {
         fmt.Printf("Error: Invalid trip ID - %v\n", err)
