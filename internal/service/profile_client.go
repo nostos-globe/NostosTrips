@@ -44,7 +44,7 @@ func (c *ProfileClient) GetFollowing(token string, userID uint) ([]int, error) {
 	// Extract just the profile IDs
 	var followingIDs []int
 	for _, profile := range response.Follow.Profiles {
-		followingIDs = append(followingIDs, int(profile.ProfileID))
+		followingIDs = append(followingIDs, int(profile.UserID))
 	}
 
 	return followingIDs, nil
