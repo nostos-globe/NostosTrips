@@ -294,6 +294,22 @@ func (c *MediaController) GetMediaByTripID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, media)
 }
 
+func (c *MediaController) GetMediaByID(ctx *gin.Context) {
+    mediaID, err := strconv.ParseInt(ctx.Param("media_id"), 10, 64)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid media ID"})
+        return
+    }
+
+    media, err := c.MediaService.GetMediaByID(mediaID)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve media"})
+        return
+    }
+
+    ctx.JSON(http.StatusOK, media)
+}
+
 func (c *MediaController) GetLocationByMediaID(ctx *gin.Context) {
 	mediaID, err := strconv.ParseInt(ctx.Param("media_id"), 10, 64)
 	if err != nil {

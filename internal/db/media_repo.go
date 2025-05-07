@@ -52,9 +52,9 @@ func (repo *MediaRepository) DeleteMedia(mediaID int64) error {
 	return nil
 }
 
-func (r *MediaRepository) GetMediaByID(mediaID int64) (*models.Media, error) {
+func (repo *MediaRepository) GetMediaByID(mediaID int64) (*models.Media, error) {
 	var media models.Media
-	result := r.DB.Table("media.media").First(&media, mediaID)
+	result := repo.DB.Table("media.media").Where("media_id = ?", mediaID).First(&media)
 	if result.Error != nil {
 		return nil, result.Error
 	}

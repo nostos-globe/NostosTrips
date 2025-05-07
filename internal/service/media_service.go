@@ -380,6 +380,10 @@ func (s *MediaService) GetLocationByMediaID(mediaID int64) (*models.Location, er
 	return location, nil
 }
 
+func (s *MediaService) GetMediaByID(mediaID int64) (*models.Media, error) {
+    return s.MediaRepo.GetMediaByID(mediaID)
+}
+
 func (s *MediaService) DeleteMediaCompletely(mediaID int64, userID int64) error {
 	// First get the media to check permissions and get the file path
 	media, err := s.MediaRepo.GetMediaByID(mediaID)

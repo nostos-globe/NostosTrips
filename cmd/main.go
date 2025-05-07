@@ -105,6 +105,7 @@ func main() {
 	mediaApi := r.Group("/api/media")
 	{
 		mediaApi.POST("/trip/:trip_id", mediaHandler.UploadMedia)
+		mediaApi.GET("/id/:media_id", mediaHandler.GetMediaByID)
 		mediaApi.GET("/:media_id", mediaHandler.GetMediaURL)
 		mediaApi.DELETE("/:media_id", mediaHandler.DeleteMedia)
 		mediaApi.POST("/:media_id/metadata", mediaHandler.AddMetadataToMedia)
