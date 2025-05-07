@@ -49,8 +49,8 @@ func (s *MediaService) GetMediaByTripID(tripID int64, userID int64) ([]models.Me
 		response = append(response, models.MediaByTrip{
 			MediaID:   media.MediaID,
 			URL:       url,
-			Longitude: uint(media.GpsLongitude),
-			Latitude:  uint(media.GpsLatitude),
+			Longitude: media.GpsLongitude,
+			Latitude:  media.GpsLatitude,
 		})
 	}
 
@@ -381,7 +381,7 @@ func (s *MediaService) GetLocationByMediaID(mediaID int64) (*models.Location, er
 }
 
 func (s *MediaService) GetMediaByID(mediaID int64) (*models.Media, error) {
-    return s.MediaRepo.GetMediaByID(mediaID)
+	return s.MediaRepo.GetMediaByID(mediaID)
 }
 
 func (s *MediaService) DeleteMediaCompletely(mediaID int64, userID int64) error {
