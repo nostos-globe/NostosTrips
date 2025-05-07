@@ -38,12 +38,19 @@ func (m *TripMapper) ToTripUpdate(req struct {
 }
 
 func (m *TripMapper) ToTripRequest(req TripRequest, userID uint) Trip {
-	return Trip{
-		UserID:      userID,
-		Name:        req.Name,
-		Description: req.Description,
-		Visibility:  req.Visibility,
-		StartDate:   req.StartDate,
-		EndDate:     req.EndDate,
-	}
+    var albumID uint
+    if req.AlbumID != "" {
+        if id, err := strconv.ParseUint(req.AlbumID, 10, 32); err == nil {
+            albumID = uint(id)
+        }
+    }
+
+    return Trip{
+        UserID:      userID,
+        Name:        req.Name,
+        Description: req.Description,
+        Visibility:  req.Visibility,
+        StartDate:   req.StartDate,
+        EndDate:     req.EndDate,
+    }
 }
