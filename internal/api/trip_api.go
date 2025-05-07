@@ -27,7 +27,7 @@ func (c *TripController) CreateTrip(ctx *gin.Context) {
 		Visibility  string `json:"visibility"`
 		StartDate   string `json:"start_date"`
 		EndDate     string `json:"end_date"`
-		AlbumID     uint   `json:"album_id"` 
+		AlbumID     string   `json:"album_id"` 
 	}
 
 	// Get user ID from authenticated context
