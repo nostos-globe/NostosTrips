@@ -47,28 +47,6 @@ The service uses multiple schemas in PostgreSQL:
 - `locations.locations`: Stores location information
 - `albums.album_trips`: Stores album-trip relationships
 
-## API Endpoints
-
-### Trips
-| Method | Route               | Description                  |
-|--------|---------------------|------------------------------|
-| POST   | /api/trips          | Create a new trip            |
-| GET    | /api/trips          | List all trips               |
-| GET    | /api/trips/myTrips  | List user's own trips        |
-| GET    | /api/trips/:id      | Get specific trip details    |
-| PUT    | /api/trips/update   | Update trip information      |
-| DELETE | /api/trips/delete/:id | Delete a trip              |
-
-### Media
-| Method | Route                          | Description                                      |
-|--------|--------------------------------|--------------------------------------------------|
-| POST   | /api/media/trip/:trip_id       | Add an image/video to a trip                    |
-| GET    | /api/media/:media_id           | Get a presigned URL for a media item            |
-| DELETE | /api/media/:media_id           | Delete a media item                             |
-| POST   | /api/media/:media_id/metadata  | Add or update metadata for a media item         |
-| PUT    | /api/media/:media_id/visibility | Update media visibility settings               |
-| GET    | /api/media/trip/:trip_id       | Get all media associated with a trip            |
-
 ## Media Features
 
 ### Automatic Metadata Extraction
