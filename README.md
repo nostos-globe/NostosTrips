@@ -1,109 +1,171 @@
 # Nostos Trips Service
 
-## Description
-The Nostos Trips service manages the creation and organization of trips, allowing users to associate photos and videos directly with each trip. It offers granular control over privacy and metadata for each stored media item.
+The **Nostos Trips Service** enables users to create and manage trips, and associate photos and videos with rich metadata, privacy controls, and location intelligence. Built in Go, it integrates tightly with services for storage, authentication, and geocoding.
 
-## Features
+---
 
-- Complete trip creation and management
-- Storage and administration of photos and videos associated with trips
-- Individual privacy settings (PUBLIC/PRIVATE/FRIENDS) for each media item
-- Detailed metadata storage (GPS location, capture date, altitude)
-- Automatic location extraction from media EXIF data
-- Manual location input for media without GPS data
-- MinIO integration for efficient image and video storage
-- Presigned URLs for secure media access
-- Friendship-based access control for media sharing
-- Automatic geocoding of coordinates to city and country information
+## 🚀 Features
 
-## Technologies Used
+* Full trip lifecycle management
+* Photo and video uploads per trip
+* EXIF-based metadata extraction (GPS, date, altitude)
+* Manual location input fallback
+* Individual privacy settings (PUBLIC, PRIVATE, FRIENDS)
+* MinIO-based media storage
+* Presigned URLs for secure access
+* Friendship-aware sharing logic
+* Reverse geocoding via OpenStreetMap Nominatim
+* Secrets management via HashiCorp Vault
 
-- **Language:** Go 1.24
-- **Framework:** Gin
-- **Database:** PostgreSQL with GORM
-- **Storage:** MinIO for media files
-- **Authentication:** JWT via Auth Service
-- **Secrets Management:** HashiCorp Vault
-- **Orchestration:** Docker
-- **EXIF Data Extraction:** rwcarlsen/goexif
-- **Geocoding:** OpenStreetMap Nominatim API
+---
 
-## Architecture
+## 📌 Endpoints
 
-The service follows a clean architecture pattern with the following components:
+### 🔹 Trip Management
 
-- **API Controllers:** Handle HTTP requests and responses
-- **Services:** Implement business logic
-- **Repositories:** Handle database operations
-- **Models:** Define data structures
-- **Configuration:** Manage environment and secrets
+* **Create Trip**
+  `POST /api/trips/`
+  Creates a new trip.
 
-## Database Schema
+* **Get All Trips**
+  `GET /api/trips/`
+  Retrieves all trips.
 
-The service uses multiple schemas in PostgreSQL:
+* **Search Trips**
+  `POST /api/trips/search`
+  Searches trips by query.
 
-- `trips.trips`: Stores trip information
-- `media.media`: Stores media metadata
-- `locations.locations`: Stores location information
-- `albums.album_trips`: Stores album-trip relationships
+* **Public Trips**
+  `GET /api/trips/public`
+  Lists all publicly visible trips.
 
-## Media Features
+* **My Trips**
+  `GET /api/trips/myTrips`
+  Retrieves trips owned by the authenticated user.
 
-### Automatic Metadata Extraction
-The service automatically extracts the following metadata from uploaded media:
-- Media type (photo/video)
-- GPS coordinates (latitude, longitude, altitude)
-- City and country (reverse geocoded from coordinates)
-- Capture date
+* **Trips from Followed Users**
+  `GET /api/trips/following`
+  Lists trips created by users you follow.
 
-### Manual Location Input
-For media without GPS data, the service returns a special response code (202 Accepted) with a flag indicating that manual location input is required. The frontend can then prompt the user to provide location information.
+* **Trips by User ID**
+  `GET /api/trips/user/:id`
+  Retrieves trips for a given user.
 
-### Privacy Controls
-Each media item can have one of the following visibility settings:
-- PUBLIC: Visible to all users
-- PRIVATE: Visible only to the owner
-- FRIENDS: Visible to the owner and their friends
+* **My Liked Trips**
+  `GET /api/trips/myLikedTrips`
+  Shows trips liked by the current user.
 
-## Security
-- Authentication: Implemented using JWT tokens from the Auth Service
-- Access Control: Based on user permissions and media visibility settings
-- Media Access: Secured using MinIO presigned URLs with expiration times
-- Secrets Management: HashiCorp Vault for secure storage of sensitive configuration
+* **Get Trip by ID**
+  `GET /api/trips/:id`
+  Fetches details of a specific trip.
 
-## Structure
-```
-NostosTrips/
-├── cmd/
-│   └── main.go           # Application entry point
-├── internal/
-│   ├── api/              # HTTP controllers
-│   ├── db/               # Database repositories
-│   ├── models/           # Data models
-│   └── service/          # Business logic
-├── pkg/
-│   ├── config/           # Configuration management
-│   └── db/               # Database connection
-├── Dockerfile            # Container definition
-├── go.mod                # Go module definition
-└── README.md             # This file
-```
+* **Get Trip Locations**
+  `GET /api/trips/:id/locations`
+  Retrieves location data tied to a trip.
 
-## Installation
+* **Update Trip**
+  `PUT /api/trips/update`
+  Updates an existing trip.
 
-Clone the repository:
+* **Delete Trip**
+  `DELETE /api/trips/delete/:id`
+  Deletes a trip by ID.
+
+### 🔹 Media Management
+
+* **Upload Media to Trip**
+  `POST /api/media/trip/:trip_id`
+  Uploads media for a specific trip.
+
+* **Get Media by ID**
+  `GET /api/media/id/:media_id`
+  Retrieves media metadata and details.
+
+* **Get Media URL**
+  `GET /api/media/:media_id`
+  Returns a presigned URL for secure access.
+
+* **Delete Media**
+  `DELETE /api/media/:media_id`
+  Deletes the specified media item.
+
+* **Add Metadata to Media**
+  `POST /api/media/:media_id/metadata`
+  Attaches metadata to a media file.
+
+* **Get Media Visibility**
+  `GET /api/media/:media_id/visibility`
+  Gets current visibility setting.
+
+* **Change Media Visibility**
+  `PUT /api/media/:media_id/visibility`
+  Updates the visibility of a media item.
+
+* **Get Media Location**
+  `GET /api/media/:media_id/location`
+  Returns location info for a given media file.
+
+* **Get Media by Trip ID**
+  `GET /api/media/trip/:trip_id`
+  Retrieves all media linked to a trip.
+
+---
+
+## ⚙️ Installation and Configuration
+
+### Prerequisites
+
+* Go 1.24+
+* Docker & Docker Compose
+* PostgreSQL
+* HashiCorp Vault
+* MinIO
+* Optional: OpenStreetMap-compatible geocoding access (e.g., Nominatim)
+
+### Installation
 
 ```bash
 git clone https://github.com/nostos-globe/NostosTrips.git
 cd NostosTrips
+go mod download
 ```
 
-## Development
+### Configuration
 
-To run the service locally, ensure you have Docker and Docker Compose installed. Then, execute:
+Ensure the following secrets are available in your Vault setup:
+
+* `DATABASE_URL`
+* `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
+* `JWT_SECRET` (shared with Auth Service)
+* Any SMTP or geocoding credentials as needed
+
+Vault can be accessed via token, AppRole, or Kubernetes Auth.
+
+---
+
+## ▶️ Running the Application
 
 ```bash
-go mod download
 go run cmd/main.go
 ```
 
+---
+
+## 🏗️ Project Structure
+
+```
+NostosTrips/
+├── cmd/                # App entry point
+│   └── main.go
+├── internal/
+│   ├── api/            # HTTP controllers
+│   ├── db/             # Database repositories
+│   ├── models/         # Domain models
+│   └── service/        # Core business logic
+├── pkg/
+│   ├── config/         # Config and secrets handling
+│   └── db/             # DB initialization
+├── Dockerfile
+├── go.mod
+└── README.md
+```
