@@ -6,9 +6,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/nats-io/nats.go"
 
 	controller "main/internal/api"
 	dbRepo "main/internal/db"
+	"main/internal/events"
 	"main/internal/service"
 	"main/pkg/config"
 	"main/pkg/db"
@@ -38,7 +40,10 @@ func init() {
 func main() {
 	// Load configuration
 	cfg := config.LoadConfig()
-
+	nc, err := nats.Connect(cfg.NatsUrl)
+	if err != nil {
+		log.Fatal("Error conectando a NATS:", err)
+	}
 	// Connect to database
 	database, err := db.ConnectDB(cfg)
 	if err != nil {
@@ -53,16 +58,18 @@ func main() {
 	// Initialize authClient
 	authClient := &service.AuthClient{BaseURL: cfg.AuthServiceUrl}
 	profileClient := &service.ProfileClient{BaseURL: cfg.ProfileServiceUrl}
+	publisher := events.NewPublisher(nc)
 
 	// Initialize MinioService
 	minioService := service.NewMinioService()
 
 	// Initialize services
 	albumsTripsService := &service.AlbumsTripsService{AlbumsTripsRepo: albumsTripsRepo}
-	tripService := &service.TripService{TripRepo: tripRepo}
+	tripService := &service.TripService{TripRepo: tripRepo, Events: publisher}
 	mediaService := &service.MediaService{
 		MediaRepo:    mediaRepo,
 		MinioService: minioService,
+		Events:       publisher,
 	}
 	geocodingService := &service.GeocodingService{}
 
@@ -73,7 +80,7 @@ func main() {
 		AuthClient:       authClient,
 		ProfileClient:    profileClient,
 		AlbumTripService: albumsTripsService,
-		LikesClient:      &service.LikesClient{BaseURL: "https://actions.nostos-globe.me"},  // Add this line
+		LikesClient:      &service.LikesClient{BaseURL: "https://actions.nostos-globe.me"}, // Add this line
 	}
 	mediaHandler := &controller.MediaController{
 		MediaService:     mediaService,

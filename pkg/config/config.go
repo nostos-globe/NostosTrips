@@ -16,6 +16,7 @@ type Config struct {
 	JWTSecret         string
 	AuthServiceUrl    string
 	ProfileServiceUrl string
+	NatsUrl           string
 }
 
 func LoadConfig() *Config {
@@ -33,5 +34,6 @@ func LoadConfig() *Config {
 		JWTSecret:         os.Getenv("JWT_SECRET"),
 		AuthServiceUrl:    os.Getenv("AUTH_SERVICE_URL"),
 		ProfileServiceUrl: os.Getenv("PROFILE_SERVICE_URL"),
+		NatsUrl:           os.Getenv("NATS_URL"),
 	}
 }

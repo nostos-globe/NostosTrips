@@ -1,23 +1,35 @@
 package service
 
 import (
+	"fmt"
 	"main/internal/db"
+	"main/internal/events"
 	"main/internal/models"
 	"strconv"
-	"fmt"
+	"time"
 )
 
 type TripService struct {
 	TripRepo *db.TripsRepository
+	Events   *events.Publisher
 }
 
 func (s *TripService) CreateTrip(trip models.Trip) (any, error) {
 	fmt.Printf("Creating new trip:", trip)
-	
+
 	result, err := s.TripRepo.CreateTrip(trip)
 	if err != nil {
 		fmt.Printf("Error creating trip:", err)
 		return nil, err
+	}
+
+	if s.Events != nil {
+		evt := events.TripCreatedEvent{
+			TripID:    result.(models.Trip).TripID,
+			OwnerID:   trip.UserID,
+			CreatedAt: time.Now(),
+		}
+		_ = s.Events.Publish("trip.created", evt)
 	}
 
 	fmt.Printf("Successfully created trip. Result:", result)
@@ -31,6 +43,15 @@ func (s *TripService) UpdateTrip(trip models.Trip) (any, error) {
 		return nil, err
 	}
 
+	if s.Events != nil {
+		evt := events.TripUpdatedEvent{
+			TripID:    result.(models.Trip).TripID,
+			OwnerID:   trip.UserID,
+			UpdatedAt: time.Now(),
+		}
+		_ = s.Events.Publish("trip.updated", evt)
+	}
+
 	return result, nil
 }
 
@@ -40,9 +61,24 @@ func (s *TripService) DeleteTrip(tripID string) error {
 	if err != nil {
 		return err
 	}
+
+	trip, err := s.TripRepo.GetTripByID(id)
+	if err != nil {
+		return err
+	}
+
 	err = s.TripRepo.DeleteTrip(id)
 	if err != nil {
 		return err
+	}
+
+	if s.Events != nil {
+		evt := events.TripDeletedEvent{
+			TripID:    id,
+			OwnerID:   trip.UserID,
+			DeletedAt: time.Now(),
+		}
+		_ = s.Events.Publish("trip.deleted", evt)
 	}
 
 	return nil

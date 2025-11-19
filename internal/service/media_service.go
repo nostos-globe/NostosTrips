@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"main/internal/db"
+	"main/internal/events"
 	"main/internal/models"
 	"main/pkg/config"
 	"mime/multipart"
@@ -21,6 +22,7 @@ import (
 type MediaService struct {
 	MediaRepo    *db.MediaRepository
 	MinioService *MinioService
+	Events       *events.Publisher
 }
 
 func (s *MediaService) GetMediaByTripID(tripID int64, userID int64) ([]models.MediaByTrip, error) {
@@ -196,6 +198,16 @@ func (s *MediaService) DeleteMediaByTripID(tripID string) error {
 }
 
 func (s *MediaService) SaveMedia(media *models.Media) error {
+	if s.Events != nil {
+		evt := events.MediaUploadedEvent{
+			MediaID:    media.MediaID,
+			TripID:     media.TripID,
+			UserID:     media.UserID,
+			Type:       string(media.Type),
+			UploadedAt: time.Now(),
+		}
+		_ = s.Events.Publish("media.uploaded", evt)
+	}
 	return s.MediaRepo.SaveMedia(media)
 }
 
